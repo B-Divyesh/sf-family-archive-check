@@ -3,6 +3,71 @@ import type { CheckResult, FileRecord, MediaKind, TargetScan } from './types';
 const photoExtensions = new Set(['jpg', 'jpeg', 'png', 'heic', 'heif', 'gif', 'webp', 'tif', 'tiff', 'raw', 'dng']);
 const videoExtensions = new Set(['mp4', 'mov', 'm4v', 'avi', 'mkv', 'webm', 'mts', 'm2ts', '3gp']);
 
+const bytesEqual = (bytes: Uint8Array, offset: number, expected: number[]) =>
+  expected.every((value, index) => bytes[offset + index] === value);
+
+function hasIsoBox(bytes: Uint8Array, name: string) {
+  const wanted = [...new TextEncoder().encode(name)];
+  for (let offset = 4; offset + 4 <= bytes.length; offset += 1) {
+    if (bytesEqual(bytes, offset, wanted)) return true;
+  }
+  return false;
+}
+
+/** Rejects empty, truncated, or wrongly labelled sampled media before it can be called readable. */
+export function hasValidMediaStructure(path: string, bytes: Uint8Array): boolean {
+  const extension = path.toLowerCase().split('.').pop() ?? '';
+  if (!photoExtensions.has(extension) && !videoExtensions.has(extension)) return bytes.length > 0;
+  if (bytes.length < 12) return false;
+
+  if (extension === 'jpg' || extension === 'jpeg') {
+    return bytesEqual(bytes, 0, [0xff, 0xd8, 0xff]) && bytesEqual(bytes, bytes.length - 2, [0xff, 0xd9]);
+  }
+  if (extension === 'png') {
+    return bytesEqual(bytes, 0, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]) &&
+      bytesEqual(bytes, bytes.length - 12, [0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4e, 0x44]);
+  }
+  if (extension === 'gif') {
+    const header = new TextDecoder().decode(bytes.slice(0, 6));
+    return (header === 'GIF87a' || header === 'GIF89a') && bytes.at(-1) === 0x3b;
+  }
+  if (extension === 'webp') {
+    return bytesEqual(bytes, 0, [0x52, 0x49, 0x46, 0x46]) && bytesEqual(bytes, 8, [0x57, 0x45, 0x42, 0x50]);
+  }
+  if (['tif', 'tiff', 'dng', 'raw'].includes(extension)) {
+    const little = bytesEqual(bytes, 0, [0x49, 0x49, 0x2a, 0x00]);
+    const big = bytesEqual(bytes, 0, [0x4d, 0x4d, 0x00, 0x2a]);
+    return little || big;
+  }
+  if (['heic', 'heif', 'mp4', 'mov', 'm4v', '3gp'].includes(extension)) {
+    return hasIsoBox(bytes, 'ftyp') && (hasIsoBox(bytes, 'mdat') || hasIsoBox(bytes, 'meta'));
+  }
+  if (extension === 'avi') {
+    return bytesEqual(bytes, 0, [0x52, 0x49, 0x46, 0x46]) && bytesEqual(bytes, 8, [0x41, 0x56, 0x49, 0x20]) && hasIsoBox(bytes, 'movi');
+  }
+  if (extension === 'mkv' || extension === 'webm') {
+    return bytesEqual(bytes, 0, [0x1a, 0x45, 0xdf, 0xa3]) && bytes.some((value, index) => value === 0x18 && bytesEqual(bytes, index, [0x18, 0x53, 0x80, 0x67]));
+  }
+  if (extension === 'mts' || extension === 'm2ts') {
+    const offset = extension === 'm2ts' ? 4 : 0;
+    return bytes[offset] === 0x47 && (bytes.length < offset + 189 || bytes[offset + 188] === 0x47);
+  }
+  return false;
+}
+
+async function browserCanDecodePhoto(file: File, path: string) {
+  const extension = path.toLowerCase().split('.').pop() ?? '';
+  if (!['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(extension) || typeof createImageBitmap !== 'function') return true;
+  try {
+    const bitmap = await createImageBitmap(file);
+    const valid = bitmap.width > 0 && bitmap.height > 0;
+    bitmap.close();
+    return valid;
+  } catch {
+    return false;
+  }
+}
+
 export function mediaKind(path: string): MediaKind {
   const extension = path.toLowerCase().split('.').pop() ?? '';
   if (photoExtensions.has(extension)) return 'photo';
@@ -38,7 +103,7 @@ export function compareScans(primary: TargetScan, backup: TargetScan): CheckResu
   const dated = media.filter((file) => file.captureYear).length;
   const sampledHashes = [...primaryByPath].filter(([path, source]) => {
     const copy = backupByPath.get(path);
-    return Boolean(source.hash && copy?.hash);
+    return Boolean(source.readable && copy?.readable && source.hash && copy.hash);
   }).length;
 
   return {
@@ -56,6 +121,20 @@ export function compareScans(primary: TargetScan, backup: TargetScan): CheckResu
     dateCoverage: media.length ? Math.round((dated / media.length) * 100) : 0,
     verdict: missingFromBackup.length || changed.length || unreadable.length ? 'attention' : 'ready'
   };
+}
+
+export function folderIndependenceProblem(primary: TargetScan, backup: TargetScan): string | undefined {
+  if (primary.path.trim().toLocaleLowerCase() === backup.path.trim().toLocaleLowerCase()) {
+    return 'The same folder was chosen twice. Choose the independent copy on another drive.';
+  }
+  if (primary.storageId && backup.storageId && primary.storageId === backup.storageId) {
+    return 'Both folders are on the same storage device. Choose an independent copy on another drive.';
+  }
+  return undefined;
+}
+
+export function exceedsFreeLimit(primaryCount: number, backupCount: number, licenseActive: boolean) {
+  return Math.max(primaryCount, backupCount) > 500 && !licenseActive;
 }
 
 export function summarize(scan: TargetScan) {
@@ -96,7 +175,7 @@ function sampleScore(path: string) {
   return score;
 }
 
-export async function scanBrowserFiles(files: FileList, label: string): Promise<TargetScan> {
+export async function scanBrowserFiles(files: FileList | File[], label: string): Promise<TargetScan> {
   const startedAt = new Date().toISOString();
   const list = Array.from(files);
   const root = list[0]?.webkitRelativePath.split('/')[0] || label;
@@ -115,7 +194,9 @@ export async function scanBrowserFiles(files: FileList, label: string): Promise<
     let readable = true;
     try {
       const bytes = await (sampled ? file : file.slice(0, 16)).arrayBuffer();
-      if (sampled) {
+      if (sampled && !hasValidMediaStructure(path, new Uint8Array(bytes))) readable = false;
+      if (sampled && readable && !(await browserCanDecodePhoto(file, path))) readable = false;
+      if (sampled && readable) {
         const digest = await crypto.subtle.digest('SHA-256', bytes);
         hash = [...new Uint8Array(digest)].map((value) => value.toString(16).padStart(2, '0')).join('');
       }

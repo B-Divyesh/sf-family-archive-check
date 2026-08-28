@@ -9,9 +9,9 @@ export default defineConfig({
     trace: 'retain-on-failure'
   },
   webServer: {
-    command: 'npm run preview',
+    command: 'npm run build:site && node tests/serve-site.mjs',
     url: 'http://127.0.0.1:4173',
     reuseExistingServer: false,
-    timeout: 30_000
+    timeout: 120_000
   }
 });

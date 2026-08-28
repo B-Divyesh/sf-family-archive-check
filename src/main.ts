@@ -1,5 +1,5 @@
 import './styles.css';
-import { compareScans, exportName, formatBytes, scanBrowserFiles, summarize } from './core';
+import { compareScans, exceedsFreeLimit, exportName, folderIndependenceProblem, formatBytes, scanBrowserFiles, summarize } from './core';
 import { sampleResult } from './sample';
 import type { CheckResult, LicenseState, TargetScan } from './types';
 
@@ -44,7 +44,7 @@ function footer() {
   return `<footer class="site-footer">
     <p>Check family photo copies before handoff.</p>
     <nav aria-label="Footer navigation"><a href="/privacy" data-link>Privacy</a><a href="/terms" data-link>Terms</a><a href="https://sociobot.in" rel="external">Built by Param Factory <span class="sr-only">(external site)</span></a></nav>
-    <p>Version 0.1.1 · Generated art disclosed in the design notes.</p>
+    <p>Version 0.1.2 · Generated art disclosed in the design notes.</p>
   </footer>`;
 }
 
@@ -80,22 +80,22 @@ function landing() {
       <a class="button secondary" href="/demo" data-link>Open this sample check</a>
     </section>
     <section class="steps" aria-labelledby="steps-title">
-      <p class="eyebrow">Three stops</p><h2 id="steps-title">How the check works</h2>
+      <p class="eyebrow">Three steps</p><h2 id="steps-title">How the check works</h2>
       <ol>
         <li><span>01</span><h3>Choose two folders</h3><p>Pick the main archive and one independent copy.</p></li>
-        <li><span>02</span><h3>Read and compare</h3><p>The app counts files, reads each entry, and hashes a media sample.</p></li>
+        <li><span>02</span><h3>Read and compare</h3><p>The app counts files, validates media samples, and compares hashes.</p></li>
         <li><span>03</span><h3>Hand over the record</h3><p>Export a recovery manifest and print plain recovery steps.</p></li>
       </ol>
     </section>
     <section class="walkthrough" aria-labelledby="walk-title">
       <p class="eyebrow">Inside the desktop app</p><h2 id="walk-title">A short check, from folders to handoff</h2>
       <div class="walk-grid">
-        <figure><div class="walk-frame"><b>1 · MAIN ARCHIVE</b><span>/Photos/Family</span><button tabindex="-1">Choose folder</button></div><figcaption>Choose folders. The app only reads them.</figcaption></figure>
-        <figure><div class="walk-frame"><b>2 · CHECK</b><span class="mini-route">●━━━━━━●</span><em>Reading 48 samples</em></div><figcaption>Watch each copy move through the same checks.</figcaption></figure>
+        <figure><div class="walk-frame"><b>1 · MAIN ARCHIVE</b><span>/Photos/Family</span><span class="mock-button" aria-hidden="true">Choose folder</span></div><figcaption>Choose folders. The app only reads them.</figcaption></figure>
+        <figure><div class="walk-frame"><b>2 · CHECK</b><span class="mini-route">●━━━━━━●</span><em>Reading 48 samples</em></div><figcaption>See both folders use the same checks.</figcaption></figure>
         <figure><div class="walk-frame result-mini"><b>3 · REPORT</b><strong>1 item needs attention</strong><span>Export manifest</span></div><figcaption>Keep the manifest beside the archive.</figcaption></figure>
       </div>
     </section>
-    <section class="boundaries" aria-labelledby="privacy-title"><div><p class="eyebrow">Read-only by default</p><h2 id="privacy-title">Your archive is cargo, not content</h2></div><div><p>The app does not move, rename, edit, or upload media.</p><p>It does not identify faces or replace a backup tool.</p><p>Only an exported manifest writes a new file.</p></div></section>
+    <section class="boundaries" aria-labelledby="privacy-title"><div><p class="eyebrow">Read-only by default</p><h2 id="privacy-title">Your folders stay unchanged</h2></div><div><p>The app does not move, rename, edit, or upload media.</p><p>It does not identify faces or replace a backup tool.</p><p>Only an exported manifest writes a new file.</p></div></section>
     <section class="purchase" aria-labelledby="price-title">
       <div><p class="eyebrow">Household license</p><h2 id="price-title">Check archives larger than 500 files</h2><p>Pay $29 once for unlimited checks and saved folder profiles.</p></div>
       <div><a class="button gold" href="https://api.sociobot.in/api/v1/products/family-archive-check/checkout">Buy household license — $29</a><button class="text-button" id="show-license">Have a license? Paste it</button><p class="fine-print">Sociobot is the merchant of record. Refunds are handled there.</p></div>
@@ -122,9 +122,10 @@ function legal(kind: 'privacy' | 'terms') {
 function checker(demo = false) {
   document.title = `${demo ? 'Demo' : 'Check folders'} — Family Archive Check`;
   const result = demo ? sampleResult() : currentResult;
+  const storageUnverified = Boolean(result && !demo && !isTauri && !result.primary.storageId);
   return shell(demo ? 'demo' : 'check', `
     <section class="app-screen">
-      <div class="app-heading"><div><p class="eyebrow">${demo ? 'Sample archive' : 'New archive check'}</p><h1 tabindex="-1">${result ? (result.verdict === 'ready' ? 'Both archive copies are ready' : 'One archive item needs attention') : 'Check two archive folders'}</h1><p>${result ? 'Review the difference, then export a recovery manifest.' : 'Choose the main archive and an independent copy. Nothing will be changed.'}</p></div>${!result ? '<span class="read-only-stamp">Read only</span>' : ''}</div>
+      <div class="app-heading"><div><p class="eyebrow">${demo ? 'Sample archive' : 'New archive check'}</p><h1 tabindex="-1">${result ? (result.verdict === 'ready' ? (storageUnverified ? 'Files match; drive separation is unverified' : 'Both archive copies are ready') : 'One archive item needs attention') : 'Check two archive folders'}</h1><p>${result ? 'Review the difference, then export a recovery manifest.' : 'Choose the main archive and an independent copy. Nothing will be changed.'}</p></div>${!result ? '<span class="read-only-stamp">Read only</span>' : ''}</div>
       ${result ? resultView(result, demo) : pickerView()}
       ${!demo ? appLicenseView() : ''}
     </section>`, demo);
@@ -132,13 +133,15 @@ function checker(demo = false) {
 
 function pickerView() {
   const profiles = licenseState().active ? savedProfiles() : [];
+  const independenceProblem = primaryScan && backupScan ? folderIndependenceProblem(primaryScan, backupScan) : undefined;
   return `<section class="check-panel" aria-label="Folder choices">
     <div class="route-progress ${busy ? 'is-moving' : ''}" aria-hidden="true"><i></i></div>
     <div class="folder-stop"><span class="stop-number">01</span><div><h2>Main archive</h2><p id="primary-path">${primaryScan ? escapeHtml(primaryScan.path) : 'Choose the folder you treat as the original archive. Choosing starts a read-only inventory.'}</p></div><button id="choose-primary">${primaryScan ? 'Choose a different folder' : 'Choose and read main folder'}</button></div>
     <div class="folder-stop"><span class="stop-number">02</span><div><h2>Independent copy</h2><p id="backup-path">${backupScan ? escapeHtml(backupScan.path) : 'Choose a copy on another drive or mounted location. Choosing starts a read-only inventory.'}</p></div><button id="choose-backup">${backupScan ? 'Choose a different folder' : 'Choose and read backup folder'}</button></div>
-    <div class="scan-action"><button class="button primary" id="run-check" ${!primaryScan || !backupScan || busy ? 'disabled' : ''}>${busy ? 'Checking folders…' : 'Check both folders'}</button><p id="scan-status" role="status">${busy ? 'Reading files. Large folders can take several minutes.' : 'The app reads files and hashes a sample. It never changes the folders.'}</p></div>
-    <input class="sr-only" type="file" id="primary-input" webkitdirectory multiple /><input class="sr-only" type="file" id="backup-input" webkitdirectory multiple />
-    ${scanError ? `<p class="scan-error" role="alert">${escapeHtml(scanError)}</p>` : ''}
+    <div class="scan-action"><button class="button primary" id="run-check" ${!primaryScan || !backupScan || busy || independenceProblem ? 'disabled' : ''}>${busy ? 'Checking folders…' : 'Check both folders'}</button><p id="scan-status" role="status">${busy ? 'Reading files. Large folders can take several minutes.' : 'The app reads files and validates a media sample. It never changes the folders.'}</p></div>
+    <input class="sr-only" type="file" id="primary-input" aria-label="Choose main archive folder" tabindex="-1" webkitdirectory multiple /><input class="sr-only" type="file" id="backup-input" aria-label="Choose independent copy folder" tabindex="-1" webkitdirectory multiple />
+    ${independenceProblem || scanError ? `<p class="scan-error" role="alert">${escapeHtml(independenceProblem || scanError)}</p>` : ''}
+    ${!isTauri ? '<p class="browser-note">This browser can detect the same folder name. Use the desktop app to confirm that folders are on separate drives.</p>' : ''}
     ${profiles.length ? `<div class="saved-profiles"><h2>Saved folder profiles</h2><p>Choose a profile to read both folders again.</p><ul>${profiles.map((profile, index) => `<li><div><strong>${escapeHtml(profile.main)}</strong><span>${escapeHtml(profile.backup)}</span></div><button data-use-profile="${index}">Read this profile</button><button class="text-button" data-forget-profile="${index}">Forget</button></li>`).join('')}</ul></div>` : ''}
     <div class="empty-guidance"><h2>${profiles.length ? 'Start another check' : 'No folders chosen yet'}</h2><p>Your counts and copy differences will appear here after one check.</p><button class="text-button" id="load-sample">Load sample project</button></div>
   </section>`;
@@ -148,8 +151,9 @@ function resultView(result: CheckResult, demo: boolean) {
   const main = summarize(result.primary);
   const backup = summarize(result.backup);
   const issues = [...result.missingFromBackup, ...result.changed, ...result.unreadable];
+  const storageUnverified = !demo && !isTauri && !result.primary.storageId && result.verdict === 'ready';
   return `<section class="result-panel">
-    <div class="verdict ${result.verdict}" role="status"><span aria-hidden="true">${result.verdict === 'ready' ? '✓' : '!'}</span><div><strong>${result.verdict === 'ready' ? 'Ready for handoff' : `${issues.length} item${issues.length === 1 ? ' needs' : 's need'} attention`}</strong><p>${result.matched} paths match across both folders.</p></div></div>
+    <div class="verdict ${storageUnverified ? 'attention' : result.verdict}" role="status"><span aria-hidden="true">${result.verdict === 'ready' && !storageUnverified ? '✓' : '!'}</span><div><strong>${result.verdict === 'ready' ? (storageUnverified ? 'Confirm separate drives' : 'Ready for handoff') : `${issues.length} item${issues.length === 1 ? ' needs' : 's need'} attention`}</strong><p>${result.matched} paths match across both folders.</p>${storageUnverified ? '<p>The browser cannot identify storage devices. Repeat this check in the desktop app before handoff.</p>' : ''}</div></div>
     <div class="archive-comparison">
       <article><p class="eyebrow">Main archive</p><h2>${main.files} files</h2><dl><div><dt>Photos</dt><dd>${main.photo}</dd></div><div><dt>Videos</dt><dd>${main.video}</dd></div><div><dt>Size</dt><dd>${formatBytes(main.bytes)}</dd></div><div><dt>Location</dt><dd>${escapeHtml(result.primary.path)}</dd></div></dl></article>
       <div class="comparison-line" aria-hidden="true"><span></span></div>
@@ -170,7 +174,7 @@ function appLicenseView() {
 
 function notFound() {
   document.title = 'Page not found — Family Archive Check';
-  return shell('', `<section class="not-found"><p class="error-code">404 · End of the line</p><h1 tabindex="-1">This stop is not on the route</h1><p>The page may have moved, but your archive has not.</p><a class="button primary" href="/" data-link>Return to the home page</a></section>`);
+  return shell('', `<section class="not-found"><p class="error-code">Error 404</p><h1 tabindex="-1">This page was not found</h1><p>Check the address, or return to the home page.</p><a class="button primary" href="/" data-link>Return to the home page</a></section>`);
 }
 
 function render() {
@@ -223,6 +227,7 @@ async function chooseFolder(which: 'primary' | 'backup') {
       const { invoke } = await import('@tauri-apps/api/core');
       const scan = await invoke<TargetScan>('scan_folder', { path, label: which === 'primary' ? 'Main archive' : 'Independent copy' });
       if (which === 'primary') primaryScan = scan; else backupScan = scan;
+      scanError = primaryScan && backupScan ? folderIndependenceProblem(primaryScan, backupScan) ?? '' : '';
     } catch (error) {
       scanError = `The folder could not be read. Check the drive, then choose it again. ${String(error)}`;
     } finally {
@@ -262,6 +267,7 @@ async function readSavedProfile(index: number) {
       invoke<TargetScan>('scan_folder', { path: profile.main, label: 'Main archive' }),
       invoke<TargetScan>('scan_folder', { path: profile.backup, label: 'Independent copy' })
     ]);
+    scanError = folderIndependenceProblem(primaryScan, backupScan) ?? '';
   } catch (error) {
     scanError = `A saved folder could not be read. Connect both drives, then try again. ${String(error)}`;
   } finally {
@@ -277,6 +283,7 @@ async function acceptBrowserFolder(which: 'primary' | 'backup', files: FileList 
   try {
     const scan = await scanBrowserFiles(files, which === 'primary' ? 'Main archive' : 'Independent copy');
     if (which === 'primary') primaryScan = scan; else backupScan = scan;
+    scanError = primaryScan && backupScan ? folderIndependenceProblem(primaryScan, backupScan) ?? '' : '';
   } catch (error) {
     scanError = `The folder could not be read. Check the drive, then choose it again. ${error instanceof Error ? error.message : ''}`;
   } finally {
@@ -287,8 +294,13 @@ async function acceptBrowserFolder(which: 'primary' | 'backup', files: FileList 
 
 function runCheck() {
   if (!primaryScan || !backupScan) return;
-  const count = Math.max(primaryScan.files.length, backupScan.files.length);
-  if (count > 500 && !licenseState().active) {
+  const independenceProblem = folderIndependenceProblem(primaryScan, backupScan);
+  if (independenceProblem) {
+    scanError = independenceProblem;
+    render();
+    return;
+  }
+  if (exceedsFreeLimit(primaryScan.files.length, backupScan.files.length, licenseState().active)) {
     alert('This check has more than 500 files. Add a household license, then check these folders again.');
     return;
   }

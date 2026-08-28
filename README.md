@@ -2,7 +2,7 @@
 
 Check that family photos and videos have a readable, independent copy before handoff.
 
-Family Archive Check is a local-first desktop app for household archivists. It compares a main folder with a copy on another drive. It reports missing, changed, and unreadable files. It also exports a portable JSON recovery manifest and a printable handoff sheet.
+Family Archive Check is a local-first desktop app for household archivists. It compares a main folder with a copy on another drive. It validates a deterministic sample of media, then reports missing, changed, and unreadable files. It also exports a portable JSON recovery manifest and a printable handoff sheet.
 
 It does not host photos, identify faces, sync files, or change the selected folders.
 
@@ -34,6 +34,8 @@ Both helpers download the current release, verify its SHA-256 checksum, and plac
 4. Review missing, changed, and unreadable items.
 5. Export the JSON recovery manifest and print the handoff sheet.
 
+The installed app blocks folders on the same storage device. The browser fallback detects repeat selections by folder name but cannot identify physical drives.
+
 The free app checks up to 500 files. A $29 one-time household license enables unlimited checks and saved folder profiles. Recovery exports and accessibility are never paid features.
 
 ## Develop and test
@@ -44,6 +46,7 @@ Requirements: Node.js 22+, Rust stable, and the [Tauri 2 system dependencies](ht
 npm ci
 npm run dev
 npm test
+npm run lint
 cargo test --manifest-path src-tauri/Cargo.toml
 ```
 

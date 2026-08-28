@@ -18,6 +18,7 @@ export interface TargetScan {
   startedAt: string;
   completedAt: string;
   fileSystem?: string;
+  storageId?: string;
 }
 
 export interface CheckResult {

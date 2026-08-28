@@ -2,6 +2,7 @@
 body { margin: 0; background: #f4ebd8; color: #172a2a; font: 18px/1.5 Georgia, serif; }
 header, footer { padding: 20px max(24px, calc((100vw - 760px) / 2)); background: #172a2a; color: #fff9ea; }
 header a, footer a { color: #f4ca67; }
+footer a { min-height: 44px; display: inline-flex; align-items: center; }
 header a { font: 800 18px Arial Narrow, Arial, sans-serif; text-transform: uppercase; }
 main { min-height: 70vh; max-width: 760px; margin: auto; padding: 12vh 24px; }
 h1 { max-width: 10ch; font: 800 clamp(48px, 9vw, 96px)/.95 Arial Narrow, Arial, sans-serif; text-transform: uppercase; }

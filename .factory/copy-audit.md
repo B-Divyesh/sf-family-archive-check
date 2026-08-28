@@ -15,11 +15,11 @@ Audited 2026-08-28. Counts treat hyphenated terms as one word. No sentence excee
 | 6 | The main archive has six items. |
 | 5 | The independent copy has five. |
 | 8 | Pick the main archive and one independent copy. |
-| 12 | The app counts files, reads each entry, and hashes a media sample. |
+| 9 | The app counts files, validates media samples, and compares hashes. |
 | 9 | Export a recovery manifest and print plain recovery steps. |
 | 2 | Choose folders. |
 | 5 | The app only reads them. |
-| 8 | Watch each copy move through the same checks. |
+| 7 | See both folders use the same checks. |
 | 6 | Keep the manifest beside the archive. |
 | 10 | The app does not move, rename, edit, or upload media. |
 | 10 | It does not identify faces or replace a backup tool. |
@@ -40,7 +40,7 @@ Audited 2026-08-28. Counts treat hyphenated terms as one word. No sentence excee
 | 5 | Choosing starts a read-only inventory. |
 | 9 | Choose a copy on another drive or mounted location. |
 | 5 | Choosing starts a read-only inventory. |
-| 8 | The app reads files and hashes a sample. |
+| 9 | The app reads files and validates a media sample. |
 | 5 | It never changes the folders. |
 | 9 | Your counts and copy differences will appear here after one check. |
 | 10 | The manifest lists file paths, sizes, dates, and sampled hashes. |
@@ -55,6 +55,14 @@ Audited 2026-08-28. Counts treat hyphenated terms as one word. No sentence excee
 | 4 | License no longer active. |
 | 8 | Paste a current license or buy one below. |
 | 9 | No missing, changed, extra, or unreadable items were found. |
+| 13 | The same folder was chosen twice. Choose the independent copy on another drive. |
+| 13 | Both folders are on the same storage device. Choose an independent copy on another drive. |
+| 19 | This browser can detect the same folder name. Use the desktop app to confirm that folders are on separate drives. |
+| 7 | Files match; drive separation is unverified. |
+| 3 | Confirm separate drives. |
+| 15 | The browser cannot identify storage devices. Repeat this check in the desktop app before handoff. |
+| 5 | This page was not found. |
+| 9 | Check the address, or return to the home page. |
 
 ## Terminology
 

@@ -1,10 +1,12 @@
+#![cfg_attr(not(feature = "desktop"), allow(dead_code))]
+
 use chrono::Utc;
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 use std::{
     collections::HashSet,
     fs::{self, File},
-    io::{BufReader, Read},
+    io::{BufReader, Read, Seek, SeekFrom},
     path::{Path, PathBuf},
     time::{SystemTime, UNIX_EPOCH},
 };
@@ -34,6 +36,7 @@ struct TargetScan {
     started_at: String,
     completed_at: String,
     file_system: String,
+    storage_id: String,
 }
 
 fn kind(path: &Path) -> &'static str {
@@ -65,6 +68,103 @@ fn hash_file(path: &Path) -> Result<String, String> {
         hasher.update(&buffer[..count]);
     }
     Ok(format!("{:x}", hasher.finalize()))
+}
+
+fn has_bytes_at(file: &mut File, offset: u64, expected: &[u8]) -> bool {
+    let mut bytes = vec![0; expected.len()];
+    file.seek(SeekFrom::Start(offset)).is_ok()
+        && file.read_exact(&mut bytes).is_ok()
+        && bytes == expected
+}
+
+fn valid_iso_media(path: &Path) -> bool {
+    let Ok(mut file) = File::open(path) else {
+        return false;
+    };
+    let Ok(metadata) = file.metadata() else {
+        return false;
+    };
+    let length = metadata.len();
+    let mut offset = 0_u64;
+    let mut has_ftyp = false;
+    let mut has_media = false;
+    while offset + 8 <= length {
+        let mut header = [0_u8; 8];
+        if file.seek(SeekFrom::Start(offset)).is_err() || file.read_exact(&mut header).is_err() {
+            return false;
+        }
+        let mut box_length = u64::from(u32::from_be_bytes(header[0..4].try_into().unwrap()));
+        let header_length = if box_length == 1 {
+            let mut extended = [0_u8; 8];
+            if file.read_exact(&mut extended).is_err() {
+                return false;
+            }
+            box_length = u64::from_be_bytes(extended);
+            16
+        } else {
+            8
+        };
+        if box_length == 0 {
+            box_length = length - offset;
+        }
+        if box_length < header_length || offset + box_length > length {
+            return false;
+        }
+        has_ftyp |= &header[4..8] == b"ftyp";
+        has_media |= matches!(&header[4..8], b"mdat" | b"meta");
+        offset += box_length;
+    }
+    offset == length && has_ftyp && has_media
+}
+
+fn valid_media(path: &Path) -> bool {
+    let extension = path
+        .extension()
+        .and_then(|value| value.to_str())
+        .unwrap_or("")
+        .to_ascii_lowercase();
+    let Ok(metadata) = fs::metadata(path) else {
+        return false;
+    };
+    if metadata.len() == 0 {
+        return false;
+    }
+    match extension.as_str() {
+        "jpg" | "jpeg" | "png" | "gif" | "webp" | "tif" | "tiff" => image::ImageReader::open(path)
+            .ok()
+            .and_then(|reader| reader.with_guessed_format().ok())
+            .and_then(|reader| reader.decode().ok())
+            .is_some_and(|decoded| decoded.width() > 0 && decoded.height() > 0),
+        "heic" | "heif" | "mp4" | "mov" | "m4v" | "3gp" => valid_iso_media(path),
+        "dng" | "raw" => {
+            let Ok(mut file) = File::open(path) else {
+                return false;
+            };
+            has_bytes_at(&mut file, 0, b"II*\0") || has_bytes_at(&mut file, 0, b"MM\0*")
+        }
+        "avi" => {
+            let Ok(mut file) = File::open(path) else {
+                return false;
+            };
+            metadata.len() >= 12
+                && has_bytes_at(&mut file, 0, b"RIFF")
+                && has_bytes_at(&mut file, 8, b"AVI ")
+        }
+        "mkv" | "webm" => {
+            let Ok(mut file) = File::open(path) else {
+                return false;
+            };
+            metadata.len() >= 12 && has_bytes_at(&mut file, 0, &[0x1a, 0x45, 0xdf, 0xa3])
+        }
+        "mts" | "m2ts" => {
+            let Ok(mut file) = File::open(path) else {
+                return false;
+            };
+            let offset = if extension == "m2ts" { 4 } else { 0 };
+            metadata.len() > offset && has_bytes_at(&mut file, offset, &[0x47])
+        }
+        _ => true,
+    }
 }
 
 fn year_from_exif(path: &Path) -> Option<i32> {
@@ -158,12 +258,13 @@ fn scan(path: &Path, label: String) -> Result<TargetScan, String> {
         let relative_path = relative_path(&item, path);
         let sampled = sampled_paths.contains(&relative_path);
         let metadata = fs::metadata(&item);
-        let readable = File::open(&item)
+        let byte_readable = File::open(&item)
             .and_then(|mut file| {
                 let mut byte = [0_u8; 1];
-                file.read(&mut byte).map(|_| ())
+                file.read_exact(&mut byte)
             })
             .is_ok();
+        let readable = byte_readable && (!sampled || valid_media(&item));
         let size = metadata.as_ref().map(|value| value.len()).unwrap_or(0);
         let modified = metadata
             .ok()
@@ -198,7 +299,27 @@ fn scan(path: &Path, label: String) -> Result<TargetScan, String> {
         started_at,
         completed_at: Utc::now().to_rfc3339(),
         file_system: filesystem_label(path),
+        storage_id: storage_id(path),
     })
+}
+
+#[cfg(unix)]
+fn storage_id(path: &Path) -> String {
+    use std::os::unix::fs::MetadataExt;
+    fs::metadata(path)
+        .map(|metadata| format!("device:{}", metadata.dev()))
+        .unwrap_or_default()
+}
+
+#[cfg(windows)]
+fn storage_id(path: &Path) -> String {
+    use std::path::Component;
+    path.components()
+        .find_map(|component| match component {
+            Component::Prefix(prefix) => Some(format!("volume:{:?}", prefix.kind())),
+            _ => None,
+        })
+        .unwrap_or_default()
 }
 
 #[cfg(target_os = "windows")]
@@ -214,11 +335,13 @@ fn filesystem_label(_: &Path) -> String {
     "Linux mounted volume".into()
 }
 
+#[cfg(feature = "desktop")]
 #[tauri::command]
 fn scan_folder(path: String, label: String) -> Result<TargetScan, String> {
     scan(Path::new(&path), label)
 }
 
+#[cfg(feature = "desktop")]
 #[tauri::command]
 fn write_manifest(path: String, contents: String) -> Result<(), String> {
     if !path.to_ascii_lowercase().ends_with(".json") {
@@ -227,6 +350,7 @@ fn write_manifest(path: String, contents: String) -> Result<(), String> {
     fs::write(path, contents).map_err(|error| format!("The manifest could not be saved: {error}"))
 }
 
+#[cfg(feature = "desktop")]
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -239,14 +363,14 @@ pub fn run() {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::io::Write;
 
     #[test]
     fn claim_read_only_scan_reads_files_without_changing_them() {
         let directory = tempfile::tempdir().unwrap();
-        let file_path = directory.path().join("1998-family.jpg");
-        let mut file = File::create(&file_path).unwrap();
-        file.write_all(b"sample photo bytes").unwrap();
+        let file_path = directory.path().join("1998-family.png");
+        image::DynamicImage::new_rgb8(1, 1)
+            .save(&file_path)
+            .unwrap();
         let before = fs::read(&file_path).unwrap();
         let result = scan(directory.path(), "Main archive".into()).unwrap();
         assert_eq!(result.files.len(), 1);
@@ -259,11 +383,9 @@ mod tests {
     fn scan_hashes_at_most_forty_eight_media_files() {
         let directory = tempfile::tempdir().unwrap();
         for index in 0..60 {
-            fs::write(
-                directory.path().join(format!("photo-{index:02}.jpg")),
-                b"photo",
-            )
-            .unwrap();
+            image::DynamicImage::new_rgb8(1, 1)
+                .save(directory.path().join(format!("photo-{index:02}.png")))
+                .unwrap();
         }
         let result = scan(directory.path(), "Main archive".into()).unwrap();
         assert_eq!(result.files.iter().filter(|file| file.sampled).count(), 48);
@@ -275,5 +397,51 @@ mod tests {
                 .count(),
             48
         );
+    }
+
+    #[test]
+    fn claim_media_readable_rejects_empty_and_truncated_images() {
+        let directory = tempfile::tempdir().unwrap();
+        for extension in [
+            "jpg", "jpeg", "png", "heic", "heif", "gif", "webp", "tif", "tiff", "raw", "dng",
+            "mp4", "mov", "m4v", "avi", "mkv", "webm", "mts", "m2ts", "3gp",
+        ] {
+            fs::write(directory.path().join(format!("empty.{extension}")), []).unwrap();
+        }
+        fs::write(directory.path().join("truncated.png"), b"\x89PNG\r\n\x1a\n").unwrap();
+        image::DynamicImage::new_rgb8(1, 1)
+            .save(directory.path().join("valid.png"))
+            .unwrap();
+
+        let result = scan(directory.path(), "Main archive".into()).unwrap();
+        let readable = |name: &str| {
+            result
+                .files
+                .iter()
+                .find(|file| file.relative_path == name)
+                .unwrap()
+                .readable
+        };
+        for extension in [
+            "jpg", "jpeg", "png", "heic", "heif", "gif", "webp", "tif", "tiff", "raw", "dng",
+            "mp4", "mov", "m4v", "avi", "mkv", "webm", "mts", "m2ts", "3gp",
+        ] {
+            assert!(!readable(&format!("empty.{extension}")), "{extension}");
+        }
+        assert!(!readable("truncated.png"));
+        assert!(readable("valid.png"));
+    }
+
+    #[test]
+    fn claim_capture_year_reads_exif_or_folder_dates() {
+        let directory = tempfile::tempdir().unwrap();
+        let dated = directory.path().join("2004");
+        fs::create_dir(&dated).unwrap();
+        let file_path = dated.join("reunion.png");
+        image::DynamicImage::new_rgb8(1, 1)
+            .save(&file_path)
+            .unwrap();
+        let result = scan(directory.path(), "Main archive".into()).unwrap();
+        assert_eq!(result.files[0].capture_year, Some(2004));
     }
 }

@@ -42,11 +42,39 @@
     "sandbox": "in-memory main and copy scans with one missing and one changed media file"
   },
   {
+    "id": "media-readable",
+    "claim": "Sampled media must have a valid structure before it is reported readable.",
+    "where": "check status and result evidence",
+    "test": "npm run test:unit -- --testNamePattern @claim:media-readable",
+    "sandbox": "in-memory empty and truncated JPEG and PNG bytes; assert each is rejected"
+  },
+  {
+    "id": "independent-folders",
+    "claim": "The same folder or storage device cannot pass as an independent copy.",
+    "where": "folder check",
+    "test": "npm run test:unit -- --testNamePattern @claim:independent-folders",
+    "sandbox": "in-memory scans with matching paths or native storage identifiers; assert each is blocked"
+  },
+  {
+    "id": "free-limit",
+    "claim": "Free checks include up to 500 files.",
+    "where": "landing price fact, check license panel, and README",
+    "test": "npm run test:unit -- --testNamePattern @claim:free-limit",
+    "sandbox": "in-memory boundary of 500 and 501 files with and without an active license"
+  },
+  {
     "id": "read-only",
     "claim": "Checks folders without changing archive files.",
     "where": "landing privacy section and README",
     "test": "cargo test --manifest-path src-tauri/Cargo.toml claim_read_only",
     "sandbox": "temporary folder and media file; scan, then assert the file bytes are unchanged"
+  },
+  {
+    "id": "capture-year",
+    "claim": "The report measures how much main media has a known year from metadata or its path.",
+    "where": "result evidence",
+    "test": "cargo test --manifest-path src-tauri/Cargo.toml claim_capture_year",
+    "sandbox": "temporary dated folder containing a valid image; assert the scanner records its year"
   },
   {
     "id": "paid-license",
@@ -61,5 +89,26 @@
     "where": "landing download section and README",
     "test": "npm run test:e2e -- --grep @claim:platform-download",
     "sandbox": "fresh browser context reporting macOS with a recorded GitHub release response; assert the DMG download URL"
+  },
+  {
+    "id": "demo-isolation",
+    "claim": "Demo data stays separate from real folder data.",
+    "where": "demo banner, demo guide, and README",
+    "test": "npm run test:e2e -- --grep @claim:demo-isolation",
+    "sandbox": "fresh browser context; leave the sample through Check folders and assert the sample entry is absent"
+  },
+  {
+    "id": "license-privacy",
+    "claim": "A license check sends only the pasted token to Sociobot.",
+    "where": "privacy page and README",
+    "test": "npm run test:e2e -- --grep @claim:license-privacy",
+    "sandbox": "recorded license response; assert one GET contains only the encoded token and no body"
+  },
+  {
+    "id": "installer-checksum",
+    "claim": "Each command-line helper verifies SHA-256 before saving an installer to Downloads.",
+    "where": "README",
+    "test": "npm run test:unit -- --testNamePattern @claim:installer-checksum",
+    "sandbox": "inspect both shipped helpers; assert checksum verification precedes the move to Downloads"
   }
 ]

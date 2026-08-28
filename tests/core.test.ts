@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { compareScans, mediaKind } from '../src/core';
+import { compareScans, exceedsFreeLimit, folderIndependenceProblem, hasValidMediaStructure, mediaKind } from '../src/core';
 import type { TargetScan } from '../src/types';
 
 const target = (path: string, files: TargetScan['files']): TargetScan => ({
@@ -58,5 +58,26 @@ describe('archive comparison', () => {
     expect(mediaKind('photo.HEIC')).toBe('photo');
     expect(mediaKind('clip.MOV')).toBe('video');
     expect(mediaKind('notes.txt')).toBe('other');
+  });
+
+  it('@claim:media-readable rejects empty and truncated media structures', () => {
+    for (const extension of ['jpg', 'jpeg', 'png', 'heic', 'heif', 'gif', 'webp', 'tif', 'tiff', 'raw', 'dng', 'mp4', 'mov', 'm4v', 'avi', 'mkv', 'webm', 'mts', 'm2ts', '3gp']) {
+      expect(hasValidMediaStructure(`empty.${extension}`, new Uint8Array()), extension).toBe(false);
+    }
+    expect(hasValidMediaStructure('truncated.jpg', new Uint8Array([0xff, 0xd8, 0xff]))).toBe(false);
+    expect(hasValidMediaStructure('truncated.png', new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))).toBe(false);
+    expect(hasValidMediaStructure('valid.jpg', new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0, 0, 0, 0, 0, 0, 0xff, 0xd9]))).toBe(true);
+  });
+
+  it('@claim:independent-folders rejects the same folder and storage device', () => {
+    expect(folderIndependenceProblem(target('/photos', []), target('/photos', []))).toContain('same folder');
+    expect(folderIndependenceProblem({ ...target('/main', []), storageId: 'device:7' }, { ...target('/copy', []), storageId: 'device:7' })).toContain('same storage device');
+    expect(folderIndependenceProblem({ ...target('/main', []), storageId: 'device:7' }, { ...target('/copy', []), storageId: 'device:8' })).toBeUndefined();
+  });
+
+  it('@claim:free-limit allows 500 files and requires a license for 501', () => {
+    expect(exceedsFreeLimit(500, 500, false)).toBe(false);
+    expect(exceedsFreeLimit(501, 501, false)).toBe(true);
+    expect(exceedsFreeLimit(501, 501, true)).toBe(false);
   });
 });
