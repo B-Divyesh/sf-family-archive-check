@@ -1,0 +1,32 @@
+{
+  "name": "family-archive-check",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "npm run build:site && npm run build:app",
+    "build:site": "vite build --mode site --outDir dist/site",
+    "build:app": "vite build --mode app --outDir dist/app",
+    "preview": "vite preview --host 127.0.0.1 --port 4173 --outDir dist/site",
+    "test:unit": "vitest run tests/core.test.ts",
+    "test:e2e": "playwright test",
+    "test": "npm run test:unit && npm run build:site && npm run test:e2e",
+    "tauri": "tauri"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "2.8.0",
+    "@tauri-apps/plugin-dialog": "2.4.0"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.10.2",
+    "@playwright/test": "1.58.2",
+    "@tauri-apps/cli": "2.8.4",
+    "typescript": "5.8.3",
+    "vite": "7.3.6",
+    "vitest": "3.2.7"
+  },
+  "overrides": {
+    "playwright-core": "1.58.2"
+  }
+}

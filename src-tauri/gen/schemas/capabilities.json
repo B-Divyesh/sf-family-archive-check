@@ -1,0 +1,1 @@
+{"default":{"identifier":"default","description":"Folder selection for archive checks and manifest exports.","local":true,"windows":["main"],"permissions":["core:default","dialog:allow-open","dialog:allow-save"]}}

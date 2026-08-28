@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://family-archive-check.sociobot.in/sitemap.xml
