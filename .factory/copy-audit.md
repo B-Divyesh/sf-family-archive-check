@@ -1,0 +1,60 @@
+# Landing page copy audit
+
+Audited 2026-08-28. Counts treat hyphenated terms as one word. No sentence exceeds 22 words. No sentence contains a banned marketing word.
+
+| Words | Sentence |
+|---:|---|
+| 7 | Check every family photo has a copy. |
+| 15 | For household archivists who need a clear answer before handing photos and videos to family. |
+| 5 | See a finished two-folder check. |
+| 5 | Files stay on this device. |
+| 6 | Works offline after the first visit. |
+| 4 | Free for 500 files. |
+| 4 | Household license: $29 once. |
+| 5 | One missing video needs attention. |
+| 6 | The main archive has six items. |
+| 5 | The independent copy has five. |
+| 8 | Pick the main archive and one independent copy. |
+| 12 | The app counts files, reads each entry, and hashes a media sample. |
+| 9 | Export a recovery manifest and print plain recovery steps. |
+| 2 | Choose folders. |
+| 5 | The app only reads them. |
+| 8 | Watch each copy move through the same checks. |
+| 6 | Keep the manifest beside the archive. |
+| 10 | The app does not move, rename, edit, or upload media. |
+| 10 | It does not identify faces or replace a backup tool. |
+| 8 | Only an exported manifest writes a new file. |
+| 10 | Pay $29 once for unlimited checks and saved folder profiles. |
+| 6 | Sociobot is the merchant of record. |
+| 4 | Refunds are handled there. |
+| 7 | Checking the latest release for this device. |
+
+## Interface states
+
+| Words | Sentence |
+|---:|---|
+| 10 | Choose the main archive and an independent copy. Nothing will be changed. |
+| 10 | Review the difference, then export a recovery manifest. |
+| 11 | Choose the folder you treat as the original archive. |
+| 5 | Choosing starts a read-only inventory. |
+| 10 | Choose a copy on another drive or mounted location. |
+| 5 | Choosing starts a read-only inventory. |
+| 12 | The app reads files and hashes a sample. It never changes the folders. |
+| 9 | Your counts and copy differences will appear here after one check. |
+| 8 | The manifest lists file paths, sizes, dates, and sampled hashes. |
+| 6 | Keep it beside both copies. |
+| 14 | The folder could not be read. Check the drive, then choose it again. |
+
+## Terminology
+
+| Concept | Word used |
+|---|---|
+| Original collection | main archive |
+| Second independently recoverable collection | independent copy |
+| One comparison run | check |
+| Portable JSON record | recovery manifest |
+| Printed recovery instructions | handoff sheet |
+| Paid entitlement | household license |
+| Isolated example | sample / demo |
+
+Catalog description: “Check that family photos have a readable copy before handoff.” (10 words, 61 characters.)
