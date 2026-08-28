@@ -1,0 +1,10 @@
+{
+  "slug": "family-archive-check",
+  "title": "Family Archive Check",
+  "summary": "Check that family photos have a readable copy before handoff.",
+  "artifact_class": "desktop-app",
+  "monetization": "one-time",
+  "price_usd": 29,
+  "job": "Inventory a main photo or video folder and an independent copy, sample file readability, report coverage, and export recovery instructions.",
+  "non_goals": ["photo hosting", "facial recognition", "cloud sync"]
+}
