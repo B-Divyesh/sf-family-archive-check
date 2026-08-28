@@ -44,7 +44,7 @@ function footer() {
   return `<footer class="site-footer">
     <p>Check family photo copies before handoff.</p>
     <nav aria-label="Footer navigation"><a href="/privacy" data-link>Privacy</a><a href="/terms" data-link>Terms</a><a href="https://sociobot.in" rel="external">Built by Param Factory <span class="sr-only">(external site)</span></a></nav>
-    <p>Version 0.1.2 · Generated art disclosed in the design notes.</p>
+    <p>Version 0.1.3 · Generated art disclosed in the design notes.</p>
   </footer>`;
 }
 

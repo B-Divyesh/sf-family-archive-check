@@ -40,7 +40,7 @@ The free app checks up to 500 files. A $29 one-time household license enables un
 
 ## Develop and test
 
-Requirements: Node.js 22+, Rust stable, and the [Tauri 2 system dependencies](https://v2.tauri.app/start/prerequisites/).
+Requirements: Node.js 22.12.x, Rust stable, and the [Tauri 2 system dependencies](https://v2.tauri.app/start/prerequisites/).
 
 ```sh
 npm ci

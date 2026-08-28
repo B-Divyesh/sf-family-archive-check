@@ -1,0 +1,12 @@
+{
+  "lighthouseVersion": "12.8.2",
+  "url": "http://127.0.0.1:4173/",
+  "formFactor": "mobile",
+  "performance": 100,
+  "accessibility": 100,
+  "bestPractices": 100,
+  "seo": 100,
+  "largestContentfulPaintMs": 1425.3633,
+  "cumulativeLayoutShift": 0,
+  "totalBlockingTimeMs": 70
+}

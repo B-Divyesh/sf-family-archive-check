@@ -6,6 +6,16 @@ import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 
 describe('release policies', () => {
+  it('keeps the package, desktop, and visible release versions aligned', () => {
+    const packageJson = JSON.parse(readFileSync('package.json', 'utf8'));
+    const tauri = JSON.parse(readFileSync('src-tauri/tauri.conf.json', 'utf8'));
+    const cargo = readFileSync('src-tauri/Cargo.toml', 'utf8');
+    const app = readFileSync('src/main.ts', 'utf8');
+    expect(tauri.version).toBe(packageJson.version);
+    expect(cargo).toMatch(new RegExp(`^version = "${packageJson.version.replaceAll('.', '\\.')}"$`, 'm'));
+    expect(app).toContain(`Version ${packageJson.version}`);
+  });
+
   it('@claim:installer-checksum verifies each installer before saving it', () => {
     const shell = readFileSync('public/install.sh', 'utf8');
     const powershell = readFileSync('public/install.ps1', 'utf8');
