@@ -55,12 +55,16 @@ Audited 2026-08-28. Counts treat hyphenated terms as one word. No sentence excee
 | 4 | License no longer active. |
 | 8 | Paste a current license or buy one below. |
 | 9 | No missing, changed, extra, or unreadable items were found. |
-| 13 | The same folder was chosen twice. Choose the independent copy on another drive. |
-| 13 | Both folders are on the same storage device. Choose an independent copy on another drive. |
-| 19 | This browser can detect the same folder name. Use the desktop app to confirm that folders are on separate drives. |
+| 7 | The same folder was chosen twice. |
+| 6 | Choose the independent copy on another drive. |
+| 9 | Both folders are on the same storage device. |
+| 6 | Choose an independent copy on another drive. |
+| 8 | This browser can detect the same folder name. |
+| 11 | Use the desktop app to confirm that folders are on separate drives. |
 | 7 | Files match; drive separation is unverified. |
 | 3 | Confirm separate drives. |
-| 15 | The browser cannot identify storage devices. Repeat this check in the desktop app before handoff. |
+| 6 | The browser cannot identify storage devices. |
+| 9 | Repeat this check in the desktop app before handoff. |
 | 5 | This page was not found. |
 | 9 | Check the address, or return to the home page. |
 
