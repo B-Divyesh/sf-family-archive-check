@@ -4,6 +4,11 @@ on:
   push:
     tags: ["v*"]
   workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag
+        required: true
+        default: v0.1.0
 
 permissions:
   contents: write
@@ -44,8 +49,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: ${{ github.ref_name }}
-          releaseName: Family Archive Check ${{ github.ref_name }}
+          tagName: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+          releaseName: Family Archive Check ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
           releaseBody: Unsigned preview installers for macOS, Windows, and Linux. Verify downloads with SHA256SUMS.
           releaseDraft: false
           prerelease: false
@@ -59,11 +64,12 @@ jobs:
       - name: Download release assets
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
         run: |
           mkdir release-assets
-          gh release download "${GITHUB_REF_NAME}" --dir release-assets
+          gh release download "${RELEASE_TAG}" --dir release-assets
           find release-assets -type f ! -name SHA256SUMS ! -name latest.json -print0 | sort -z | xargs -0 sha256sum | sed 's#release-assets/##' > SHA256SUMS
-          gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${GITHUB_REF_NAME}" --jq '{version: .tag_name, assets: [.assets[] | {name, url: .browser_download_url}]}' > latest.json
+          gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}" --jq '{version: .tag_name, assets: [.assets[] | {name, url: .browser_download_url}]}' > latest.json
       - uses: softprops/action-gh-release@v2
         with:
           files: |
