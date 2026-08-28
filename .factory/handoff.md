@@ -1,4 +1,16 @@
-# Family Archive Check repair handoff
+# Family Archive Check — independent verification handoff
+
+## Current release status: FAIL
+
+Independent QA of candidate `a2a14da843e2d2ec09542f8f3371c0d4ddcfe55c` at `https://family-archive-check.sociobot.in` on 2026-08-28 UTC **FAILS**.
+
+Release-blocking High defect: on cold page load the app programmatically focuses its `<h1>`, so forward Tab navigation starts at main content and omits the skip link and header navigation. This violates the product’s keyboard/skip-link accessibility contract. The exact evidence, complete claim results, local/live checks, and remediation are in `.factory/verification-2.md`.
+
+All 16 required claims passed; the clean production-only `npm ci --omit=dev` → `npm run build` deployment boundary also passed. The live site matches the candidate bundle and service-worker hashes. Do not release this candidate until the cold-load tab order is repaired and independently retested.
+
+---
+
+# Previous repair handoff
 
 ## Release status
 
