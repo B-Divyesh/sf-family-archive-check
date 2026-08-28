@@ -24,6 +24,17 @@ self.addEventListener('fetch', (event) => {
   const request = event.request;
   if (request.method !== 'GET' || new URL(request.url).origin !== self.location.origin) return;
   event.respondWith((async () => {
+    if (request.mode === 'navigate') {
+      try {
+        const response = await fetch(request);
+        if (response.ok) (await caches.open(CACHE)).put(request, response.clone());
+        return response;
+      } catch {
+        const cached = await caches.match(request) ?? await caches.match('/');
+        if (cached) return cached;
+        throw new Error('Offline and not cached');
+      }
+    }
     const cached = await caches.match(request);
     if (cached) return cached;
     try {
@@ -31,10 +42,6 @@ self.addEventListener('fetch', (event) => {
       if (response.ok) (await caches.open(CACHE)).put(request, response.clone());
       return response;
     } catch {
-      if (request.mode === 'navigate') {
-        const fallback = await caches.match('/');
-        if (fallback) return fallback;
-      }
       throw new Error('Offline and not cached');
     }
   })());

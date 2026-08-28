@@ -61,6 +61,25 @@ test('@claim:offline-reload works offline after the first visit', async ({ page,
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('One archive item needs attention');
 });
 
+test('service worker replaces stale pages online and keeps the update offline', async ({ page, context }) => {
+  await page.goto('/');
+  await page.evaluate(() => navigator.serviceWorker.ready);
+  await page.evaluate(async () => {
+    const cache = await caches.open('family-archive-check-v2');
+    await cache.put('/', new Response('<!doctype html><html><body><main><h1>Stale release</h1></main></body></html>', {
+      headers: { 'Content-Type': 'text/html' }
+    }));
+  });
+
+  await page.reload();
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Check every family photo has a copy');
+  await expect(page.getByText('Version 0.1.3')).toBeVisible();
+
+  await context.setOffline(true);
+  await page.reload();
+  await expect(page.getByText('Version 0.1.3')).toBeVisible();
+});
+
 test('@claim:paid-license links to the $29 household checkout', async ({ page }) => {
   await page.route('https://api.sociobot.in/api/v1/products/family-archive-check/verify?license=test-license', (route) => route.fulfill({
     status: 200,
