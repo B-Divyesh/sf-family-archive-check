@@ -19,6 +19,8 @@ let currentResult: CheckResult | undefined;
 let busy = false;
 let scanError = '';
 
+interface FolderProfile { main: string; backup: string; savedAt: string }
+
 const escapeHtml = (value: unknown) => String(value).replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character]!);
 
 function routePath() {
@@ -42,7 +44,7 @@ function footer() {
   return `<footer class="site-footer">
     <p>Check family photo copies before handoff.</p>
     <nav aria-label="Footer navigation"><a href="/privacy" data-link>Privacy</a><a href="/terms" data-link>Terms</a><a href="https://sociobot.in" rel="external">Built by Param Factory <span class="sr-only">(external site)</span></a></nav>
-    <p>Version 0.1.0 · Generated art disclosed in the design notes.</p>
+    <p>Version 0.1.1 · Generated art disclosed in the design notes.</p>
   </footer>`;
 }
 
@@ -119,8 +121,7 @@ function legal(kind: 'privacy' | 'terms') {
 
 function checker(demo = false) {
   document.title = `${demo ? 'Demo' : 'Check folders'} — Family Archive Check`;
-  if (demo) currentResult = sampleResult();
-  const result = demo ? currentResult : currentResult;
+  const result = demo ? sampleResult() : currentResult;
   return shell(demo ? 'demo' : 'check', `
     <section class="app-screen">
       <div class="app-heading"><div><p class="eyebrow">${demo ? 'Sample archive' : 'New archive check'}</p><h1 tabindex="-1">${result ? (result.verdict === 'ready' ? 'Both archive copies are ready' : 'One archive item needs attention') : 'Check two archive folders'}</h1><p>${result ? 'Review the difference, then export a recovery manifest.' : 'Choose the main archive and an independent copy. Nothing will be changed.'}</p></div>${!result ? '<span class="read-only-stamp">Read only</span>' : ''}</div>
@@ -130,13 +131,16 @@ function checker(demo = false) {
 }
 
 function pickerView() {
+  const profiles = licenseState().active ? savedProfiles() : [];
   return `<section class="check-panel" aria-label="Folder choices">
     <div class="route-progress ${busy ? 'is-moving' : ''}" aria-hidden="true"><i></i></div>
     <div class="folder-stop"><span class="stop-number">01</span><div><h2>Main archive</h2><p id="primary-path">${primaryScan ? escapeHtml(primaryScan.path) : 'Choose the folder you treat as the original archive. Choosing starts a read-only inventory.'}</p></div><button id="choose-primary">${primaryScan ? 'Choose a different folder' : 'Choose and read main folder'}</button></div>
     <div class="folder-stop"><span class="stop-number">02</span><div><h2>Independent copy</h2><p id="backup-path">${backupScan ? escapeHtml(backupScan.path) : 'Choose a copy on another drive or mounted location. Choosing starts a read-only inventory.'}</p></div><button id="choose-backup">${backupScan ? 'Choose a different folder' : 'Choose and read backup folder'}</button></div>
     <div class="scan-action"><button class="button primary" id="run-check" ${!primaryScan || !backupScan || busy ? 'disabled' : ''}>${busy ? 'Checking folders…' : 'Check both folders'}</button><p id="scan-status" role="status">${busy ? 'Reading files. Large folders can take several minutes.' : 'The app reads files and hashes a sample. It never changes the folders.'}</p></div>
     <input class="sr-only" type="file" id="primary-input" webkitdirectory multiple /><input class="sr-only" type="file" id="backup-input" webkitdirectory multiple />
-    ${scanError ? `<p class="scan-error" role="alert">${escapeHtml(scanError)}</p>` : ''}<div class="empty-guidance"><h2>No folders chosen yet</h2><p>Your counts and copy differences will appear here after one check.</p><button class="text-button" id="load-sample">Load sample project</button></div>
+    ${scanError ? `<p class="scan-error" role="alert">${escapeHtml(scanError)}</p>` : ''}
+    ${profiles.length ? `<div class="saved-profiles"><h2>Saved folder profiles</h2><p>Choose a profile to read both folders again.</p><ul>${profiles.map((profile, index) => `<li><div><strong>${escapeHtml(profile.main)}</strong><span>${escapeHtml(profile.backup)}</span></div><button data-use-profile="${index}">Read this profile</button><button class="text-button" data-forget-profile="${index}">Forget</button></li>`).join('')}</ul></div>` : ''}
+    <div class="empty-guidance"><h2>${profiles.length ? 'Start another check' : 'No folders chosen yet'}</h2><p>Your counts and copy differences will appear here after one check.</p><button class="text-button" id="load-sample">Load sample project</button></div>
   </section>`;
 }
 
@@ -152,15 +156,16 @@ function resultView(result: CheckResult, demo: boolean) {
       <article><p class="eyebrow">Independent copy</p><h2>${backup.files} files</h2><dl><div><dt>Photos</dt><dd>${backup.photo}</dd></div><div><dt>Videos</dt><dd>${backup.video}</dd></div><div><dt>Size</dt><dd>${formatBytes(backup.bytes)}</dd></div><div><dt>Location</dt><dd>${escapeHtml(result.backup.path)}</dd></div></dl></article>
     </div>
     <div class="check-evidence"><h2>What was checked</h2><ul><li><strong>${result.sampledHashes}</strong> sampled file hashes compared</li><li><strong>${result.dateCoverage}%</strong> of main media has a known year</li><li><strong>${result.unreadable.length}</strong> unreadable file entries</li></ul></div>
-    <div class="difference-list"><h2>Items to review</h2>${issues.length ? `<ul>${result.missingFromBackup.map((path) => `<li><span class="issue-label">Missing from copy</span><code>${escapeHtml(path)}</code></li>`).join('')}${result.changed.map((path) => `<li><span class="issue-label">Different file</span><code>${escapeHtml(path)}</code></li>`).join('')}${result.unreadable.map((path) => `<li><span class="issue-label">Could not read</span><code>${escapeHtml(path)}</code></li>`).join('')}</ul>` : '<p>No missing, changed, or unreadable items were found.</p>'}</div>
+    <div class="difference-list"><h2>Items to review</h2>${issues.length || result.extraOnBackup.length ? `<ul>${result.missingFromBackup.map((path) => `<li><span class="issue-label">Missing from copy</span><code>${escapeHtml(path)}</code></li>`).join('')}${result.changed.map((path) => `<li><span class="issue-label">Different file</span><code>${escapeHtml(path)}</code></li>`).join('')}${result.unreadable.map((path) => `<li><span class="issue-label">Could not read</span><code>${escapeHtml(path)}</code></li>`).join('')}${result.extraOnBackup.map((path) => `<li><span class="issue-label extra">Only on copy</span><code>${escapeHtml(path)}</code></li>`).join('')}</ul>` : '<p>No missing, changed, extra, or unreadable items were found.</p>'}</div>
     <div class="result-actions"><button class="button primary" id="export-manifest">Export recovery manifest</button><button class="button secondary" id="print-handoff">Print handoff sheet</button>${!demo && licenseState().active ? '<button class="button secondary" id="save-profile">Save folder profile</button>' : ''}${!demo ? '<button class="text-button" id="new-check">Start a new check</button>' : ''}</div>
     <p class="fine-print">The manifest lists file paths, sizes, dates, and sampled hashes. Keep it beside both copies.</p>
   </section>`;
 }
 
 function appLicenseView() {
-  const active = licenseState().active;
-  return `<aside class="app-license" aria-label="Household license"><div><p class="eyebrow">Household license</p><strong>${active ? 'License active' : 'Free checks include up to 500 files'}</strong><p>${active ? 'Unlimited checks and saved folder profiles are available.' : 'Pay $29 once for unlimited checks and saved folder profiles.'}</p></div>${active ? '<button class="text-button" id="remove-license">Remove license</button>' : `<div><a href="https://api.sociobot.in/api/v1/products/${PRODUCT}/checkout" target="_blank" rel="external">Buy household license — $29 <span class="sr-only">(external site)</span></a><label for="app-license-token">Or paste a license token</label><div class="inline-license"><input id="app-license-token" autocomplete="off"><button id="verify-app-license">Verify license</button></div><p id="app-license-status" role="status"></p></div>`}</aside>`;
+  const state = licenseState();
+  const inactiveNotice = state.reason && state.reason !== 'ok' ? '<p class="license-notice" role="status">License no longer active. Paste a current license or buy one below.</p>' : '';
+  return `<aside class="app-license" aria-label="Household license"><div><p class="eyebrow">Household license</p><strong>${state.active ? 'License active' : 'Free checks include up to 500 files'}</strong><p>${state.active ? 'Unlimited checks and saved folder profiles are available.' : 'Pay $29 once for unlimited checks and saved folder profiles.'}</p>${inactiveNotice}</div>${state.active ? '<button class="text-button" id="remove-license">Remove license</button>' : `<div><a href="https://api.sociobot.in/api/v1/products/${PRODUCT}/checkout" target="_blank" rel="external">Buy household license — $29 <span class="sr-only">(external site)</span></a><label for="app-license-token">Or paste a license token</label><div class="inline-license"><input id="app-license-token" autocomplete="off"><button id="verify-app-license">Verify license</button></div><p id="app-license-status" role="status"></p></div>`}</aside>`;
 }
 
 function notFound() {
@@ -175,7 +180,8 @@ function render() {
   else if (path === '/check') app.innerHTML = checker(false);
   else if (path === '/privacy') app.innerHTML = legal('privacy');
   else if (path === '/terms') app.innerHTML = legal('terms');
-  else if (path.startsWith('/print/')) app.innerHTML = printSheet(currentResult ?? sampleResult());
+  else if (path === '/print/sample-family-archive') app.innerHTML = printPage(sampleResult(), true);
+  else if (path.startsWith('/print/') && currentResult?.checkId === path.slice('/print/'.length)) app.innerHTML = printPage(currentResult, false);
   else app.innerHTML = notFound();
   bindEvents();
   document.querySelector<HTMLElement>('h1')?.focus({ preventScroll: true });
@@ -183,10 +189,14 @@ function render() {
   if (path === '/') void loadRelease();
 }
 
+function printPage(result: CheckResult, demo: boolean) {
+  return shell(demo ? 'demo' : 'check', printSheet(result), demo);
+}
+
 function printSheet(result: CheckResult) {
   const issues = [...result.missingFromBackup, ...result.changed, ...result.unreadable];
   document.title = `Recovery handoff — Family Archive Check`;
-  return `<main id="main" class="print-sheet"><p class="eyebrow">Family Archive Check · recovery handoff</p><h1 tabindex="-1">How to recover this family archive</h1><p>Checked ${new Date(result.checkedAt).toLocaleDateString()} · Check ID ${escapeHtml(result.checkId)}</p><ol><li>Connect the drive that contains <strong>${escapeHtml(result.backup.path)}</strong>.</li><li>Copy its contents to a new, empty folder.</li><li>Open several photos and videos from different years.</li><li>Compare the new folder with the recovery manifest.</li></ol><h2>Locations</h2><dl><div><dt>Main archive</dt><dd>${escapeHtml(result.primary.path)}</dd></div><div><dt>Independent copy</dt><dd>${escapeHtml(result.backup.path)}</dd></div></dl><h2>Check result</h2><p>${result.matched} matching paths. ${issues.length} items need review.</p>${issues.length ? `<ul>${issues.map((path) => `<li>${escapeHtml(path)}</li>`).join('')}</ul>` : ''}<div class="print-actions"><button class="button primary" id="print-now">Print this sheet</button><button class="text-button" id="close-print">Return to results</button></div></main>`;
+  return `<section class="print-sheet"><p class="eyebrow">Family Archive Check · recovery handoff</p><h1 tabindex="-1">How to recover this family archive</h1><p>Checked ${new Date(result.checkedAt).toLocaleDateString()} · Check ID ${escapeHtml(result.checkId)}</p><ol><li>Connect the drive that contains <strong>${escapeHtml(result.backup.path)}</strong>.</li><li>Copy its contents to a new, empty folder.</li><li>Open several photos and videos from different years.</li><li>Compare the new folder with the recovery manifest.</li></ol><h2>Locations</h2><dl><div><dt>Main archive</dt><dd>${escapeHtml(result.primary.path)}</dd></div><div><dt>Independent copy</dt><dd>${escapeHtml(result.backup.path)}</dd></div></dl><h2>Check result</h2><p>${result.matched} matching paths. ${issues.length} items need review.</p>${issues.length ? `<ul>${issues.map((path) => `<li>${escapeHtml(path)}</li>`).join('')}</ul>` : ''}<div class="print-actions"><button class="button primary" id="print-now">Print this sheet</button><button class="text-button" id="close-print">Return to results</button></div></section>`;
 }
 
 function navigate(path: string) {
@@ -224,6 +234,42 @@ async function chooseFolder(which: 'primary' | 'backup') {
   document.querySelector<HTMLInputElement>(`#${which}-input`)?.click();
 }
 
+function savedProfiles(): FolderProfile[] {
+  try {
+    const value = JSON.parse(localStorage.getItem(`${PRODUCT}:profiles`) ?? '[]');
+    return Array.isArray(value) ? value.filter((profile): profile is FolderProfile =>
+      typeof profile?.main === 'string' && typeof profile?.backup === 'string' && typeof profile?.savedAt === 'string'
+    ) : [];
+  } catch {
+    return [];
+  }
+}
+
+async function readSavedProfile(index: number) {
+  const profile = savedProfiles()[index];
+  if (!profile) return;
+  if (!isTauri) {
+    scanError = 'Saved profiles can reopen folders in the installed desktop app. Choose both folders again in this browser.';
+    render();
+    return;
+  }
+  busy = true;
+  scanError = '';
+  render();
+  try {
+    const { invoke } = await import('@tauri-apps/api/core');
+    [primaryScan, backupScan] = await Promise.all([
+      invoke<TargetScan>('scan_folder', { path: profile.main, label: 'Main archive' }),
+      invoke<TargetScan>('scan_folder', { path: profile.backup, label: 'Independent copy' })
+    ]);
+  } catch (error) {
+    scanError = `A saved folder could not be read. Connect both drives, then try again. ${String(error)}`;
+  } finally {
+    busy = false;
+    render();
+  }
+}
+
 async function acceptBrowserFolder(which: 'primary' | 'backup', files: FileList | null) {
   if (!files?.length) return;
   busy = true;
@@ -256,22 +302,23 @@ function runCheck() {
 }
 
 async function exportManifest() {
-  if (!currentResult) return;
-  const json = JSON.stringify(currentResult, null, 2);
+  const result = routePath() === '/demo' ? sampleResult() : currentResult;
+  if (!result) return;
+  const json = JSON.stringify(result, null, 2);
   if (isTauri) {
     const { save } = await import('@tauri-apps/plugin-dialog');
-    const path = await save({ defaultPath: exportName(currentResult), filters: [{ name: 'JSON manifest', extensions: ['json'] }] });
+    const path = await save({ defaultPath: exportName(result), filters: [{ name: 'JSON manifest', extensions: ['json'] }] });
     if (!path) return;
     const { invoke } = await import('@tauri-apps/api/core');
     await invoke('write_manifest', { path, contents: json });
   } else {
     const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
-    const anchor = Object.assign(document.createElement('a'), { href: url, download: exportName(currentResult) });
+    const anchor = Object.assign(document.createElement('a'), { href: url, download: exportName(result) });
     anchor.click();
     URL.revokeObjectURL(url);
   }
   const status = document.querySelector('.fine-print');
-  if (status) status.textContent = `Saved ${exportName(currentResult)}. Keep it beside both copies.`;
+  if (status) status.textContent = `Saved ${exportName(result)}. Keep it beside both copies.`;
 }
 
 function licenseState(): LicenseState {
@@ -295,18 +342,20 @@ async function verifyLicense(token: string) {
 async function acceptLicenseFromUrl() {
   const url = new URL(location.href);
   const token = url.searchParams.get('license');
-  if (!token) return;
+  if (!token) return false;
   localStorage.setItem(LICENSE_KEY, token);
   url.searchParams.delete('license');
   history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
   await verifyLicense(token);
+  return true;
 }
 
 async function refreshLicense() {
   const token = localStorage.getItem(LICENSE_KEY);
   const cached = licenseState();
-  if (!token || (cached.checkedAt && Date.now() - cached.checkedAt < 86_400_000)) return;
+  if (!token || (cached.checkedAt && Date.now() - cached.checkedAt < 86_400_000)) return false;
   await verifyLicense(token);
+  return true;
 }
 
 async function loadRelease() {
@@ -348,17 +397,24 @@ function bindEvents() {
   document.querySelector('#load-sample')?.addEventListener('click', () => { currentResult = sampleResult(); if (!__APP_BUILD__ && !isTauri) navigate('/demo'); else render(); });
   document.querySelector('#choose-primary')?.addEventListener('click', () => void chooseFolder('primary'));
   document.querySelector('#choose-backup')?.addEventListener('click', () => void chooseFolder('backup'));
+  document.querySelectorAll<HTMLButtonElement>('[data-use-profile]').forEach((button) => button.addEventListener('click', () => void readSavedProfile(Number(button.dataset.useProfile))));
+  document.querySelectorAll<HTMLButtonElement>('[data-forget-profile]').forEach((button) => button.addEventListener('click', () => {
+    const profiles = savedProfiles();
+    profiles.splice(Number(button.dataset.forgetProfile), 1);
+    localStorage.setItem(`${PRODUCT}:profiles`, JSON.stringify(profiles));
+    render();
+  }));
   document.querySelector('#primary-input')?.addEventListener('change', (event) => void acceptBrowserFolder('primary', (event.target as HTMLInputElement).files));
   document.querySelector('#backup-input')?.addEventListener('change', (event) => void acceptBrowserFolder('backup', (event.target as HTMLInputElement).files));
   document.querySelector('#run-check')?.addEventListener('click', runCheck);
   document.querySelector('#export-manifest')?.addEventListener('click', () => void exportManifest());
-  document.querySelector('#print-handoff')?.addEventListener('click', () => navigate(`/print/${currentResult?.checkId ?? 'sample'}`));
+  document.querySelector('#print-handoff')?.addEventListener('click', () => navigate(`/print/${routePath() === '/demo' ? 'sample-family-archive' : currentResult?.checkId ?? 'missing'}`));
   document.querySelector('#print-now')?.addEventListener('click', () => print());
-  document.querySelector('#close-print')?.addEventListener('click', () => { if (__APP_BUILD__ || isTauri) navigate(currentResult?.checkId === 'sample-family-archive' ? '/demo' : '/check'); else history.back(); });
+  document.querySelector('#close-print')?.addEventListener('click', () => { if (__APP_BUILD__ || isTauri) navigate(routePath() === '/print/sample-family-archive' ? '/demo' : '/check'); else history.back(); });
   document.querySelector('#new-check')?.addEventListener('click', () => { currentResult = primaryScan = backupScan = undefined; render(); });
   document.querySelector('#save-profile')?.addEventListener('click', () => {
     if (!currentResult || !licenseState().active) return;
-    const profiles = JSON.parse(localStorage.getItem(`${PRODUCT}:profiles`) ?? '[]') as unknown[];
+    const profiles = savedProfiles().filter((profile) => profile.main !== currentResult?.primary.path || profile.backup !== currentResult?.backup.path);
     profiles.push({ main: currentResult.primary.path, backup: currentResult.backup.path, savedAt: new Date().toISOString() });
     localStorage.setItem(`${PRODUCT}:profiles`, JSON.stringify(profiles.slice(-12)));
     alert('Folder profile saved on this device. Choose the folders again if drive permissions change.');
@@ -377,9 +433,12 @@ function bindEvents() {
 }
 
 addEventListener('popstate', render);
-void acceptLicenseFromUrl();
-void refreshLicense();
 render();
+void (async () => {
+  const accepted = await acceptLicenseFromUrl();
+  const refreshed = accepted ? false : await refreshLicense();
+  if (accepted || refreshed) render();
+})();
 
 if (!__APP_BUILD__ && 'serviceWorker' in navigator && (location.protocol === 'https:' || ['127.0.0.1', 'localhost'].includes(location.hostname))) {
   addEventListener('load', () => { void navigator.serviceWorker.register('/sw.js'); });

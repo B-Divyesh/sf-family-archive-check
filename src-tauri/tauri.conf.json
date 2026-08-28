@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Family Archive Check",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "identifier": "in.sociobot.family-archive-check",
   "build": {
     "beforeDevCommand": "npm run dev",

@@ -14,6 +14,13 @@
     "sandbox": "demo data; download JSON and assert the check id and missing path"
   },
   {
+    "id": "handoff-sheet",
+    "claim": "Opens a printable recovery handoff sheet.",
+    "where": "result action and README",
+    "test": "npm run test:e2e -- --grep @claim:handoff-sheet",
+    "sandbox": "demo data; open the handoff route and assert its recovery steps, demo banner, and single main landmark"
+  },
+  {
     "id": "local-only",
     "claim": "Files stay on this device.",
     "where": "landing fact and privacy section",
@@ -29,16 +36,30 @@
   },
   {
     "id": "compare-copies",
-    "claim": "Compares file paths, sizes, and sampled hashes.",
+    "claim": "Reports missing, changed, extra, and unreadable entries by comparing paths, sizes, and sampled hashes.",
     "where": "how it works and desktop check",
     "test": "npm run test:unit -- --testNamePattern @claim:compare-copies",
     "sandbox": "in-memory main and copy scans with one missing and one changed media file"
+  },
+  {
+    "id": "read-only",
+    "claim": "Checks folders without changing archive files.",
+    "where": "landing privacy section and README",
+    "test": "cargo test --manifest-path src-tauri/Cargo.toml claim_read_only",
+    "sandbox": "temporary folder and media file; scan, then assert the file bytes are unchanged"
   },
   {
     "id": "paid-license",
     "claim": "A $29 household license enables unlimited checks and saved profiles.",
     "where": "paid tier",
     "test": "npm run test:e2e -- --grep @claim:paid-license",
-    "sandbox": "fresh browser context; assert exact price, benefits, and Sociobot checkout URL"
+    "sandbox": "fresh browser context with a recorded valid verification response; assert checkout URL, exact price, and active benefits"
+  },
+  {
+    "id": "platform-download",
+    "claim": "Links the detected desktop platform to its release asset.",
+    "where": "landing download section and README",
+    "test": "npm run test:e2e -- --grep @claim:platform-download",
+    "sandbox": "fresh browser context reporting macOS with a recorded GitHub release response; assert the DMG download URL"
   }
 ]

@@ -21,6 +21,8 @@ export function compareScans(primary: TargetScan, backup: TargetScan): CheckResu
     const copy = backupByPath.get(path);
     if (!copy) {
       missingFromBackup.push(path);
+    } else if (!source.readable || !copy.readable) {
+      // Readability is reported separately; an unreadable pair is not a match.
     } else if (source.size !== copy.size || (source.hash && copy.hash && source.hash !== copy.hash)) {
       changed.push(path);
     } else {
@@ -29,12 +31,15 @@ export function compareScans(primary: TargetScan, backup: TargetScan): CheckResu
   }
 
   const extraOnBackup = [...backupByPath.keys()].filter((path) => !primaryByPath.has(path));
-  const unreadable = [...primary.files, ...backup.files]
+  const unreadable = [...new Set([...primary.files, ...backup.files]
     .filter((file) => !file.readable)
-    .map((file) => file.relativePath);
+    .map((file) => file.relativePath))];
   const media = primary.files.filter((file) => file.kind !== 'other');
   const dated = media.filter((file) => file.captureYear).length;
-  const sampledHashes = [...primary.files, ...backup.files].filter((file) => file.sampled && file.hash).length;
+  const sampledHashes = [...primaryByPath].filter(([path, source]) => {
+    const copy = backupByPath.get(path);
+    return Boolean(source.hash && copy?.hash);
+  }).length;
 
   return {
     version: 1,
@@ -82,21 +87,34 @@ export function exportName(result: CheckResult) {
   return `family-archive-manifest-${result.checkedAt.slice(0, 10)}.json`;
 }
 
+function sampleScore(path: string) {
+  let score = 2166136261;
+  for (const byte of new TextEncoder().encode(path)) {
+    score ^= byte;
+    score = Math.imul(score, 16777619) >>> 0;
+  }
+  return score;
+}
+
 export async function scanBrowserFiles(files: FileList, label: string): Promise<TargetScan> {
   const startedAt = new Date().toISOString();
   const list = Array.from(files);
   const root = list[0]?.webkitRelativePath.split('/')[0] || label;
-  const sampleStep = Math.max(1, Math.ceil(list.length / 48));
+  const relativePath = (file: File) => file.webkitRelativePath.split('/').slice(1).join('/') || file.name;
+  const sampledPaths = new Set(list
+    .map(relativePath)
+    .filter((path) => mediaKind(path) !== 'other')
+    .sort((left, right) => sampleScore(left) - sampleScore(right) || left.localeCompare(right))
+    .slice(0, 48));
   const records: FileRecord[] = [];
 
-  for (let index = 0; index < list.length; index += 1) {
-    const file = list[index];
-    const relativePath = file.webkitRelativePath.split('/').slice(1).join('/') || file.name;
-    const sampled = index % sampleStep === 0 && mediaKind(relativePath) !== 'other';
+  for (const file of list) {
+    const path = relativePath(file);
+    const sampled = sampledPaths.has(path);
     let hash: string | undefined;
     let readable = true;
     try {
-      const bytes = await file.slice(0, sampled ? 1024 * 1024 : 16).arrayBuffer();
+      const bytes = await (sampled ? file : file.slice(0, 16)).arrayBuffer();
       if (sampled) {
         const digest = await crypto.subtle.digest('SHA-256', bytes);
         hash = [...new Uint8Array(digest)].map((value) => value.toString(16).padStart(2, '0')).join('');
@@ -104,8 +122,8 @@ export async function scanBrowserFiles(files: FileList, label: string): Promise<
     } catch {
       readable = false;
     }
-    const yearMatch = relativePath.match(/(?:19|20)\d{2}/);
-    records.push({ relativePath, size: file.size, modified: file.lastModified, kind: mediaKind(relativePath), readable, sampled, hash, captureYear: yearMatch ? Number(yearMatch[0]) : undefined });
+    const yearMatch = path.match(/(?:19|20)\d{2}/);
+    records.push({ relativePath: path, size: file.size, modified: file.lastModified, kind: mediaKind(path), readable, sampled, hash, captureYear: yearMatch ? Number(yearMatch[0]) : undefined });
   }
 
   return { path: root, label, files: records, startedAt, completedAt: new Date().toISOString(), fileSystem: 'Browser folder access' };

@@ -150,6 +150,7 @@ figcaption { margin-top: 20px; }
 .difference-list ul { list-style: none; padding: 0; }
 .difference-list li { display: grid; grid-template-columns: 160px 1fr; gap: 16px; padding: 12px 0; border-bottom: 1px solid #a79e8d; }
 .issue-label { color: var(--coral); font-weight: bold; }
+.issue-label.extra { color: var(--teal); }
 code { overflow-wrap: anywhere; font-size: .88rem; }
 .result-actions { padding: 32px; display: flex; flex-wrap: wrap; gap: 16px; border-top: 2px solid var(--ink); }
 .result-panel > .fine-print { padding: 0 32px 32px; }
@@ -159,6 +160,15 @@ code { overflow-wrap: anywhere; font-size: .88rem; }
 .inline-license { display: flex; gap: 8px; margin-top: 4px; }
 .inline-license input { min-width: 0; min-height: 44px; flex: 1; border: 2px solid var(--ink); }
 .inline-license button { min-height: 44px; border: 2px solid var(--ink); background: var(--gold); font-weight: bold; }
+.license-notice { color: var(--coral); font-weight: bold; }
+.saved-profiles { padding: 32px; border-top: 2px solid var(--ink); }
+.saved-profiles h2 { font-size: 1.6rem; }
+.saved-profiles ul { list-style: none; margin: 24px 0 0; padding: 0; }
+.saved-profiles li { display: grid; grid-template-columns: 1fr auto auto; gap: 16px; align-items: center; padding: 16px 0; border-top: 1px solid #a79e8d; }
+.saved-profiles li div { min-width: 0; }
+.saved-profiles li strong, .saved-profiles li span { display: block; overflow-wrap: anywhere; }
+.saved-profiles li span { color: var(--muted); margin-top: 4px; }
+.saved-profiles li > button:not(.text-button) { min-height: 44px; padding: 8px 16px; border: 2px solid var(--ink); background: var(--paper); font: 800 .9rem var(--display); text-transform: uppercase; }
 .legal, .not-found, .print-sheet { width: min(760px, calc(100% - 32px)); margin: 0 auto; padding: 80px 0 112px; }
 .legal h1, .not-found h1, .print-sheet h1 { max-width: 13ch; font-size: clamp(2.8rem, 7vw, 5.5rem); }
 .legal h2, .print-sheet h2 { margin-top: 48px; font-size: 1.8rem; }
@@ -202,6 +212,8 @@ code { overflow-wrap: anywhere; font-size: .88rem; }
   .app-license { grid-template-columns: 1fr; padding: 24px 16px; }
   .inline-license { flex-direction: column; }
   .license-panel > div { flex-direction: column; }
+  .saved-profiles li { grid-template-columns: 1fr 1fr; }
+  .saved-profiles li div { grid-column: 1 / -1; }
 }
 
 @media (prefers-reduced-motion: reduce) {

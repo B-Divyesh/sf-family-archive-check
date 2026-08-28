@@ -33,17 +33,28 @@ Audited 2026-08-28. Counts treat hyphenated terms as one word. No sentence excee
 
 | Words | Sentence |
 |---:|---|
-| 10 | Choose the main archive and an independent copy. Nothing will be changed. |
+| 8 | Choose the main archive and an independent copy. |
+| 4 | Nothing will be changed. |
 | 10 | Review the difference, then export a recovery manifest. |
-| 11 | Choose the folder you treat as the original archive. |
+| 9 | Choose the folder you treat as the original archive. |
 | 5 | Choosing starts a read-only inventory. |
-| 10 | Choose a copy on another drive or mounted location. |
+| 9 | Choose a copy on another drive or mounted location. |
 | 5 | Choosing starts a read-only inventory. |
-| 12 | The app reads files and hashes a sample. It never changes the folders. |
+| 8 | The app reads files and hashes a sample. |
+| 5 | It never changes the folders. |
 | 9 | Your counts and copy differences will appear here after one check. |
-| 8 | The manifest lists file paths, sizes, dates, and sampled hashes. |
+| 10 | The manifest lists file paths, sizes, dates, and sampled hashes. |
 | 6 | Keep it beside both copies. |
-| 14 | The folder could not be read. Check the drive, then choose it again. |
+| 7 | The folder could not be read. |
+| 7 | Check the drive, then choose it again. |
+| 8 | Choose a profile to read both folders again. |
+| 9 | Saved profiles can reopen folders in the installed desktop app. |
+| 7 | Choose both folders again in this browser. |
+| 7 | A saved folder could not be read. |
+| 6 | Connect both drives, then try again. |
+| 4 | License no longer active. |
+| 8 | Paste a current license or buy one below. |
+| 9 | No missing, changed, extra, or unreadable items were found. |
 
 ## Terminology
 

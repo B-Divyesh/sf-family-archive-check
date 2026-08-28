@@ -2,6 +2,7 @@ use chrono::Utc;
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 use std::{
+    collections::HashSet,
     fs::{self, File},
     io::{BufReader, Read},
     path::{Path, PathBuf},
@@ -92,33 +93,70 @@ fn year_from_name(path: &Path) -> Option<i32> {
     None
 }
 
+fn relative_path(path: &Path, root: &Path) -> String {
+    path.strip_prefix(root)
+        .unwrap_or(path)
+        .to_string_lossy()
+        .replace('\\', "/")
+}
+
+fn sample_score(path: &str) -> u32 {
+    path.as_bytes()
+        .iter()
+        .fold(2_166_136_261_u32, |score, byte| {
+            (score ^ u32::from(*byte)).wrapping_mul(16_777_619)
+        })
+}
+
 fn scan(path: &Path, label: String) -> Result<TargetScan, String> {
     if !path.is_dir() {
         return Err("The chosen location is not a readable folder.".into());
     }
     let started_at = Utc::now().to_rfc3339();
-    let mut paths: Vec<PathBuf> = WalkDir::new(path)
+    let mut paths: Vec<PathBuf> = Vec::new();
+    let mut unreadable_entries: Vec<FileRecord> = Vec::new();
+    for (index, entry) in WalkDir::new(path)
         .follow_links(false)
         .into_iter()
-        .filter_map(Result::ok)
-        .filter(|entry| entry.file_type().is_file())
-        .map(|entry| entry.into_path())
-        .collect();
+        .enumerate()
+    {
+        match entry {
+            Ok(entry) if entry.file_type().is_file() => paths.push(entry.into_path()),
+            Ok(_) => {}
+            Err(error) => {
+                let relative_path = error
+                    .path()
+                    .and_then(|failed_path| failed_path.strip_prefix(path).ok())
+                    .filter(|failed_path| !failed_path.as_os_str().is_empty())
+                    .map(|failed_path| failed_path.to_string_lossy().replace('\\', "/"))
+                    .unwrap_or_else(|| format!("unreadable-entry-{index}"));
+                unreadable_entries.push(FileRecord {
+                    relative_path,
+                    size: 0,
+                    modified: 0,
+                    kind: "other",
+                    readable: false,
+                    sampled: false,
+                    hash: None,
+                    capture_year: None,
+                });
+            }
+        }
+    }
     paths.sort();
-    let media_count = paths.iter().filter(|item| kind(item) != "other").count();
-    let sample_step = usize::max(1, media_count.div_ceil(48));
-    let mut media_index = 0_usize;
+    let mut sample_candidates: Vec<String> = paths
+        .iter()
+        .filter(|item| kind(item) != "other")
+        .map(|item| relative_path(item, path))
+        .collect();
+    sample_candidates.sort_by_key(|item| (sample_score(item), item.clone()));
+    let sampled_paths: HashSet<String> = sample_candidates.into_iter().take(48).collect();
     let mut files = Vec::with_capacity(paths.len());
 
     for item in paths {
         let file_kind = kind(&item);
-        let sampled = if file_kind == "other" {
-            false
-        } else {
-            let value = media_index % sample_step == 0;
-            media_index += 1;
-            value
-        };
+        let relative_path = relative_path(&item, path);
+        let sampled = sampled_paths.contains(&relative_path);
         let metadata = fs::metadata(&item);
         let readable = File::open(&item)
             .and_then(|mut file| {
@@ -134,11 +172,6 @@ fn scan(path: &Path, label: String) -> Result<TargetScan, String> {
             .duration_since(UNIX_EPOCH)
             .unwrap_or_default()
             .as_millis() as u64;
-        let relative_path = item
-            .strip_prefix(path)
-            .unwrap_or(&item)
-            .to_string_lossy()
-            .replace('\\', "/");
         let capture_year = year_from_exif(&item).or_else(|| year_from_name(&item));
         let hash = if sampled && readable {
             hash_file(&item).ok()
@@ -156,6 +189,7 @@ fn scan(path: &Path, label: String) -> Result<TargetScan, String> {
             capture_year,
         });
     }
+    files.extend(unreadable_entries);
 
     Ok(TargetScan {
         path: path.to_string_lossy().into_owned(),
@@ -208,7 +242,7 @@ mod tests {
     use std::io::Write;
 
     #[test]
-    fn scan_reads_files_without_changing_them() {
+    fn claim_read_only_scan_reads_files_without_changing_them() {
         let directory = tempfile::tempdir().unwrap();
         let file_path = directory.path().join("1998-family.jpg");
         let mut file = File::create(&file_path).unwrap();
@@ -219,5 +253,27 @@ mod tests {
         assert_eq!(result.files[0].capture_year, Some(1998));
         assert!(result.files[0].hash.is_some());
         assert_eq!(before, fs::read(&file_path).unwrap());
+    }
+
+    #[test]
+    fn scan_hashes_at_most_forty_eight_media_files() {
+        let directory = tempfile::tempdir().unwrap();
+        for index in 0..60 {
+            fs::write(
+                directory.path().join(format!("photo-{index:02}.jpg")),
+                b"photo",
+            )
+            .unwrap();
+        }
+        let result = scan(directory.path(), "Main archive".into()).unwrap();
+        assert_eq!(result.files.iter().filter(|file| file.sampled).count(), 48);
+        assert_eq!(
+            result
+                .files
+                .iter()
+                .filter(|file| file.hash.is_some())
+                .count(),
+            48
+        );
     }
 }

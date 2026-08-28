@@ -1,0 +1,9 @@
+* { box-sizing: border-box; }
+body { margin: 0; background: #f4ebd8; color: #172a2a; font: 18px/1.5 Georgia, serif; }
+header, footer { padding: 20px max(24px, calc((100vw - 760px) / 2)); background: #172a2a; color: #fff9ea; }
+header a, footer a { color: #f4ca67; }
+header a { font: 800 18px Arial Narrow, Arial, sans-serif; text-transform: uppercase; }
+main { min-height: 70vh; max-width: 760px; margin: auto; padding: 12vh 24px; }
+h1 { max-width: 10ch; font: 800 clamp(48px, 9vw, 96px)/.95 Arial Narrow, Arial, sans-serif; text-transform: uppercase; }
+.button { display: inline-block; min-height: 44px; padding: 10px 20px; background: #0e5d5e; color: white; border: 2px solid #172a2a; box-shadow: 5px 5px #172a2a; font: bold 16px Arial, sans-serif; }
+:focus-visible { outline: 4px solid #d49b2a; outline-offset: 3px; }

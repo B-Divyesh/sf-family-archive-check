@@ -6,4 +6,4 @@
 
 The sample contains six dated family media entries in the main APFS archive. An exFAT copy has five. `2024/01-New-year/fireworks.mp4` is intentionally missing, so the result exercises the attention state, manifest download, and handoff sheet.
 
-Demo data is an in-memory fixture. It does not read real folders or write to the real-data namespace. **Reset demo** reloads the fixture. **Start for real** discards it and opens a blank check.
+Demo data is an in-memory fixture. It does not read real folders or write to the real-data namespace. Navigating to a real check also opens a blank state. **Reset demo** reloads the fixture. **Start for real** discards it and opens a blank check.

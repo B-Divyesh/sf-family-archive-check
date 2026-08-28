@@ -6,7 +6,7 @@ export default defineConfig(({ mode }) => ({
     target: 'es2022',
     sourcemap: true,
     assetsInlineLimit: 2048,
-    emptyOutDir: false
+    emptyOutDir: true
   },
   server: { strictPort: true },
   clearScreen: false

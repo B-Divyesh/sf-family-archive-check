@@ -8,7 +8,7 @@ on:
       tag:
         description: Release tag
         required: true
-        default: v0.1.0
+        default: v0.1.1
 
 permissions:
   contents: write
@@ -69,9 +69,22 @@ jobs:
           mkdir release-assets
           gh release download "${RELEASE_TAG}" --dir release-assets
           find release-assets -type f ! -name SHA256SUMS ! -name latest.json -print0 | sort -z | xargs -0 sha256sum | sed 's#release-assets/##' > SHA256SUMS
-          gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}" --jq '{version: .tag_name, assets: [.assets[] | {name, url: .browser_download_url}]}' > latest.json
+          gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}" > release.json
+          jq '{
+            version: .tag_name,
+            platforms: {
+              macos_arm64: ([.assets[] | select(.name | test("aarch64.*\\.dmg$"))][0].browser_download_url // null),
+              macos_x64: ([.assets[] | select(.name | test("x64.*\\.dmg$"))][0].browser_download_url // null),
+              windows_msi: ([.assets[] | select(.name | test("\\.msi$"))][0].browser_download_url // null),
+              linux_appimage: ([.assets[] | select(.name | test("\\.AppImage$"))][0].browser_download_url // null),
+              linux_deb: ([.assets[] | select(.name | test("\\.deb$"))][0].browser_download_url // null)
+            },
+            assets: [.assets[] | {name, url: .browser_download_url}]
+          }' release.json > latest.json
+          jq -e 'all(.platforms[]; . != null)' latest.json
       - uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
           files: |
             SHA256SUMS
             latest.json
