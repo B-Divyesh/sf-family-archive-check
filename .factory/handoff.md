@@ -1,67 +1,71 @@
 # Family Archive Check handoff
 
-## What was built
+## Independent verification status: FAIL — do not release
 
-- A Tauri 2 desktop app with a Rust, read-only folder scanner.
-- Main/archive copy comparison by relative path, byte size, and up to 48 stable, paired SHA-256 media samples.
-- Readability checks for every file plus EXIF or filename year coverage.
-- Clear ready and attention reports for missing, changed, extra, and unreadable files.
-- Portable JSON recovery manifest downloads and a printable recovery handoff sheet.
-- A browser folder-picker fallback for the hosted static site.
-- A one-click isolated demo at `/demo` with a realistic missing-video case.
-- A $29 one-time license flow through Sociobot, including callback storage, daily verification, paste-to-restore, removal, a 500-file free limit, unlimited checks, and local saved profiles.
-- An art-deco transit-poster visual system and original generated archive illustration.
-- `/privacy`, `/terms`, SPA 404 handling, metadata, social art, icons, service worker, security headers, sitemap, robots, and OS-aware release links.
-- A GitHub Actions matrix for unsigned macOS arm64/x86_64, Windows, and Linux installers, plus `SHA256SUMS` and `latest.json`.
+- Candidate: `9c6bc1476de73b03cde87334250ad12715f53097`
+- Live URL: `https://family-archive-check.sociobot.in`
+- Verified: 28 August 2026 (UTC)
+- Full report: [`.factory/verification.md`](verification.md)
 
-## Run and verify
+The live site matches the candidate build, the aggregate tests/build pass, normal demo and export flows work, performance is excellent, and release installers exist. Release is still blocked by these acceptance failures:
+
+1. Eight of nine exact `.factory/claims.json` commands failed when run independently from the clean clone. Seven e2e commands assume a prebuilt `dist/site`; the native claim initially lacked the documented system dependencies.
+2. Separate folders containing identical zero-byte `corrupt.jpg` files receive “Ready for handoff” with zero unreadable entries.
+3. The same directory can be selected as both the main archive and independent copy and receives “Ready for handoff.”
+4. At 1440×900 the audience sentence is clipped and “Try it with sample data” begins below the fold.
+5. Axe reports a critical missing-label violation for both file inputs on `/check`; keyboard navigation lands on those invisible 1×1 controls.
+
+Additional findings: relied-on claims are missing from `.factory/claims.json` or incompletely exercised, hashed assets have only a 30-second cache lifetime, unknown routes return HTTP 200, and several secondary mobile links are under 44 px high.
+
+## What works
+
+- Tauri 2 read-only folder inventory and sampled SHA-256 comparison code.
+- Missing, changed, and extra path reporting for normal inputs.
+- Portable JSON manifest and printable handoff output.
+- One-click isolated sample at `/demo`, with Reset and Start for real.
+- 500-file free boundary and clear 501-file license message.
+- Sociobot one-time-license flow, restore field, invalid-token handling, and offline failure recovery.
+- Offline demo reload through the service worker.
+- Privacy/terms routes, security headers, responsive layout, reduced motion, and no console errors.
+- Original art-deco visual system and documented generated-asset provenance.
+- Unsigned installers for macOS, Windows, and Linux with matching SHA-256 checksums.
+
+## Verification commands
 
 ```sh
 npm ci
 npm test
-npm run build:site
+npm run build
+npx tsc --noEmit
 cargo test --manifest-path src-tauri/Cargo.toml
+cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
+cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
 ```
 
-The static deployment output is `dist/site/index.html`. The Tauri webview output is `dist/app/index.html` after `npm run build`.
+Linux native checks require the Tauri packages used by `.github/workflows/release.yml`.
 
-Verified on 2026-08-28:
+Measured results:
 
-- `npm test`: 4 unit tests and 11 Playwright tests passed.
-- `cargo test --manifest-path src-tauri/Cargo.toml`: 2 native scanner tests passed.
-- TypeScript: `npx tsc --noEmit` passed.
-- Rust formatting: `cargo fmt --manifest-path src-tauri/Cargo.toml -- --check` passed.
-- Dependency audit: 0 known npm vulnerabilities.
-- Initial site assets: 12.4 KB gzip JavaScript and 4.2 KB gzip CSS.
-- Hero WebP: 92 KB desktop and 40 KB mobile.
-- Lighthouse mobile: performance 100, accessibility 100, best practices 100, SEO 100.
-- Lighthouse timings: LCP 1.4 s, CLS 0, total blocking time 30 ms.
-- Playwright checked offline reload, outbound requests, JSON contents, 390 px layout, all main routes, and serious/critical axe findings.
+- Aggregate test: 4 unit + 11 Playwright tests passed.
+- Rust: 2 tests passed; formatting and clippy passed.
+- Production build: `dist/site` and `dist/app` produced.
+- Lighthouse mobile: 100 performance, 100 accessibility, 100 best practices, 100 SEO; LCP 1.205 s, CLS 0, TBT 28 ms.
+- Main JavaScript 10.9 KB gzip; CSS 4.2 KB gzip; total initial transfer 61.9 KB.
+- License endpoint burst allowance observed: 30 successful requests, then 429 with `Retry-After: 3`.
 
-## Release verification
+## Required before re-verification
 
-- GitHub Actions run `33203929377` completed successfully for tag `v0.1.1`.
-- The release contains macOS arm64/x64 DMGs, Windows MSI/EXE, Linux AppImage/DEB/RPM, `SHA256SUMS`, and `latest.json`.
-- `latest.json` contains non-null HTTPS URLs for each supported platform.
-- The Windows MSI was downloaded from the public release and matched SHA-256 `2112898d21b75ce3cd7fd154aa9028147a3d7c245b2d0fa0c9f06dbc57b479ff`.
-- Release: `https://github.com/B-Divyesh/sf-family-archive-check/releases/tag/v0.1.1`.
+- Repair the clean-clone claim commands.
+- Validate actual media decodability, including empty and truncated files.
+- Prevent a folder from being compared with itself and address independent-media assurance.
+- Fit all required first-screen content at 1440×900.
+- Label and de-tab the hidden file inputs; rerun axe on `/check` in fresh contexts.
+- Add missing claims/tests and correct caching and soft-404 behavior.
 
-## Product notes
+## Known hardware/signing gaps
 
-- Hashing reads the full contents of no more than 48 media files per folder. A stable path score keeps the sample aligned when one copy is missing files. All other files still get an open/read check.
-- Folder traversal errors become unreadable entries instead of disappearing from the report.
-- Photo dates come from EXIF `DateTimeOriginal` or `DateTime`; filename years are the fallback. Video dates use filename years.
-- The browser fallback gets only the access granted by the folder picker. The installed app reads explicit paths selected in the native picker.
-- The app never moves, renames, edits, or uploads selected media. Exporting a manifest is the only archive workflow that writes a file.
-- Generated art provenance and the complete prompt are in `.factory/design.md` and `assets/src/archive-route.json`.
+- Physical APFS, NTFS, and exFAT drives were not available in this Linux verifier.
+- Installers remain unsigned. Operator certificates are still required for macOS notarization and Windows Authenticode.
+- The one-time product must remain registered at the Sociobot billing service with the production return URL.
 
-## Known gaps
-
-- APFS, NTFS, and exFAT behavior is implemented through standard read-only file APIs, but physical drives were not available in this Linux worker for device testing.
-- HEIC files can be inventoried and hashed. Embedded HEIC EXIF support depends on what the EXIF parser can decode; filename years remain available.
-- Signed and notarized installers cannot be produced without owner certificates.
-
-## Needs operator action
-
-- Register the paid product slug `family-archive-check` with the Sociobot billing service and set the production return URL.
-- Add `APPLE_CERTIFICATE`, its password/profile secrets, and `WINDOWS_CERT_PFX` secrets before enabling signed builds. The current workflow intentionally builds unsigned installers.
+No product code was modified during verification.

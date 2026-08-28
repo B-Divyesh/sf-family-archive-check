@@ -1,0 +1,143 @@
+{
+  "version": 1,
+  "checkId": "sample-family-archive",
+  "checkedAt": "2026-08-28T09:00:08.000Z",
+  "primary": {
+    "path": "/Volumes/Family Photos",
+    "label": "Main archive",
+    "files": [
+      {
+        "relativePath": "1987/08-Lake-camping/Dad-by-the-tent.jpg",
+        "size": 3840211,
+        "modified": 537235200000,
+        "kind": "photo",
+        "captureYear": 1987,
+        "readable": true,
+        "sampled": true,
+        "hash": "sample-0-verified"
+      },
+      {
+        "relativePath": "1994/12-Christmas/Grandma-and-Leo.jpg",
+        "size": 4110289,
+        "modified": 760838400000,
+        "kind": "photo",
+        "captureYear": 1994,
+        "readable": true,
+        "sampled": true,
+        "hash": "sample-1-verified"
+      },
+      {
+        "relativePath": "2003/06-Graduation/graduation-tape-01.mov",
+        "size": 811420113,
+        "modified": 1047254400000,
+        "kind": "video",
+        "captureYear": 2003,
+        "readable": true,
+        "sampled": true,
+        "hash": "sample-2-verified"
+      },
+      {
+        "relativePath": "2011/04/New-home/kitchen-before.jpg",
+        "size": 2948221,
+        "modified": 1302393600000,
+        "kind": "photo",
+        "captureYear": 2011,
+        "readable": true,
+        "sampled": true,
+        "hash": "sample-3-verified"
+      },
+      {
+        "relativePath": "2018/07-Reunion/family-table.jpg",
+        "size": 5611430,
+        "modified": 1525910400000,
+        "kind": "photo",
+        "captureYear": 2018,
+        "readable": true,
+        "sampled": true,
+        "hash": "sample-4-verified"
+      },
+      {
+        "relativePath": "2024/01-New-year/fireworks.mp4",
+        "size": 288821092,
+        "modified": 1717977600000,
+        "kind": "video",
+        "captureYear": 2024,
+        "readable": true,
+        "sampled": true,
+        "hash": "sample-5-verified"
+      }
+    ],
+    "startedAt": "2026-08-28T09:00:00.000Z",
+    "completedAt": "2026-08-28T09:00:08.000Z",
+    "fileSystem": "APFS"
+  },
+  "backup": {
+    "path": "/Volumes/Blue Backup",
+    "label": "Independent copy",
+    "files": [
+      {
+        "relativePath": "1987/08-Lake-camping/Dad-by-the-tent.jpg",
+        "size": 3840211,
+        "modified": 537235200000,
+        "kind": "photo",
+        "captureYear": 1987,
+        "readable": true,
+        "sampled": true,
+        "hash": "sample-0-verified"
+      },
+      {
+        "relativePath": "1994/12-Christmas/Grandma-and-Leo.jpg",
+        "size": 4110289,
+        "modified": 760838400000,
+        "kind": "photo",
+        "captureYear": 1994,
+        "readable": true,
+        "sampled": true,
+        "hash": "sample-1-verified"
+      },
+      {
+        "relativePath": "2003/06-Graduation/graduation-tape-01.mov",
+        "size": 811420113,
+        "modified": 1047254400000,
+        "kind": "video",
+        "captureYear": 2003,
+        "readable": true,
+        "sampled": true,
+        "hash": "sample-2-verified"
+      },
+      {
+        "relativePath": "2011/04/New-home/kitchen-before.jpg",
+        "size": 2948221,
+        "modified": 1302393600000,
+        "kind": "photo",
+        "captureYear": 2011,
+        "readable": true,
+        "sampled": true,
+        "hash": "sample-3-verified"
+      },
+      {
+        "relativePath": "2018/07-Reunion/family-table.jpg",
+        "size": 5611430,
+        "modified": 1525910400000,
+        "kind": "photo",
+        "captureYear": 2018,
+        "readable": true,
+        "sampled": true,
+        "hash": "sample-4-verified"
+      }
+    ],
+    "startedAt": "2026-08-28T09:00:00.000Z",
+    "completedAt": "2026-08-28T09:00:08.000Z",
+    "fileSystem": "exFAT"
+  },
+  "matched": 5,
+  "missingFromBackup": [
+    "2024/01-New-year/fireworks.mp4"
+  ],
+  "extraOnBackup": [],
+  "changed": [],
+  "unreadable": [],
+  "sampledHashes": 5,
+  "dateCoverage": 100,
+  "verdict": "attention"
+}
