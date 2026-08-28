@@ -1,0 +1,12 @@
+{
+  "lighthouseVersion": "12.8.2",
+  "url": "https://family-archive-check.sociobot.in/",
+  "formFactor": "mobile",
+  "performance": 100,
+  "accessibility": 100,
+  "bestPractices": 100,
+  "seo": 100,
+  "largestContentfulPaintMs": 1210.402,
+  "cumulativeLayoutShift": 0,
+  "totalBlockingTimeMs": 29
+}
