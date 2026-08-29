@@ -44,7 +44,7 @@ function footer() {
   return `<footer class="site-footer">
     <p>Check family photo copies before handoff.</p>
     <nav aria-label="Footer navigation"><a href="/privacy" data-link>Privacy</a><a href="/terms" data-link>Terms</a><a href="https://sociobot.in" rel="external">Built by Param Factory <span class="sr-only">(external site)</span></a></nav>
-    <p>Version 0.1.3 · Generated art disclosed in the design notes.</p>
+    <p>Version 0.1.4 · Generated art disclosed in the design notes.</p>
   </footer>`;
 }
 
@@ -177,7 +177,7 @@ function notFound() {
   return shell('', `<section class="not-found"><p class="error-code">Error 404</p><h1 tabindex="-1">This page was not found</h1><p>Check the address, or return to the home page.</p><a class="button primary" href="/" data-link>Return to the home page</a></section>`);
 }
 
-function render() {
+function render({ announceRoute = false }: { announceRoute?: boolean } = {}) {
   const path = routePath();
   if (path === '/') app.innerHTML = landing();
   else if (path === '/demo') app.innerHTML = checker(true);
@@ -188,8 +188,10 @@ function render() {
   else if (path.startsWith('/print/') && currentResult?.checkId === path.slice('/print/'.length)) app.innerHTML = printPage(currentResult, false);
   else app.innerHTML = notFound();
   bindEvents();
-  document.querySelector<HTMLElement>('h1')?.focus({ preventScroll: true });
-  document.querySelector('.route-announcer')!.textContent = document.querySelector('h1')?.textContent ?? '';
+  if (announceRoute) {
+    document.querySelector<HTMLElement>('h1')?.focus({ preventScroll: true });
+    document.querySelector('.route-announcer')!.textContent = document.querySelector('h1')?.textContent ?? '';
+  }
   if (path === '/') void loadRelease();
 }
 
@@ -206,12 +208,12 @@ function printSheet(result: CheckResult) {
 function navigate(path: string) {
   if (__APP_BUILD__ || isTauri) {
     nativeRoute = path;
-    render();
+    render({ announceRoute: true });
     scrollTo({ top: 0, behavior: 'auto' });
     return;
   }
   history.pushState({}, '', path);
-  render();
+  render({ announceRoute: true });
   scrollTo({ top: 0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
 }
 
@@ -444,7 +446,7 @@ function bindEvents() {
   document.querySelector('#remove-license')?.addEventListener('click', () => { localStorage.removeItem(LICENSE_KEY); localStorage.removeItem(LICENSE_CACHE_KEY); render(); });
 }
 
-addEventListener('popstate', render);
+addEventListener('popstate', () => render({ announceRoute: true }));
 render();
 void (async () => {
   const accepted = await acceptLicenseFromUrl();

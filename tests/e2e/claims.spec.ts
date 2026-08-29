@@ -73,11 +73,11 @@ test('service worker replaces stale pages online and keeps the update offline', 
 
   await page.reload();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Check every family photo has a copy');
-  await expect(page.getByText('Version 0.1.3')).toBeVisible();
+  await expect(page.getByText('Version 0.1.4')).toBeVisible();
 
   await context.setOffline(true);
   await page.reload();
-  await expect(page.getByText('Version 0.1.3')).toBeVisible();
+  await expect(page.getByText('Version 0.1.4')).toBeVisible();
 });
 
 test('@claim:paid-license links to the $29 household checkout', async ({ page }) => {
@@ -203,6 +203,33 @@ test('keyboard navigation skips hidden file inputs and shows focus', async ({ pa
   const picker = page.getByRole('button', { name: 'Choose and read main folder' });
   await picker.focus();
   expect(await picker.evaluate((element) => getComputedStyle(element).outlineStyle)).not.toBe('none');
+});
+
+test('cold-load keyboard order starts with the skip link and route changes announce their heading', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('body')).toBeFocused();
+
+  await page.keyboard.press('Tab');
+  const skipLink = page.getByRole('link', { name: 'Skip to main content' });
+  await expect(skipLink).toBeFocused();
+  await expect(skipLink).toHaveCSS('transform', 'matrix(1, 0, 0, 1, 0, 0)');
+
+  await page.keyboard.press('Tab');
+  await expect(page.getByRole('link', { name: 'Family Archive Check' })).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(page.getByRole('link', { name: 'Demo', exact: true })).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(page.getByRole('link', { name: 'Check folders', exact: true })).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(page.getByRole('link', { name: 'Privacy', exact: true }).first()).toBeFocused();
+
+  await page.getByRole('link', { name: 'Demo', exact: true }).click();
+  await expect(page.getByRole('heading', { level: 1 })).toBeFocused();
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('One archive item needs attention');
+
+  await page.goBack();
+  await expect(page.getByRole('heading', { level: 1 })).toBeFocused();
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Check every family photo has a copy');
 });
 
 test('check screen keeps its content at 200 percent text size', async ({ page }) => {
