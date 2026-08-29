@@ -11,7 +11,7 @@ function Invoke-RestMethod {
   ) }
 }
 
-$script:Tampered = $false
+$global:FacInstallerTampered = $false
 function Invoke-WebRequest {
   param([string]$Uri, [string]$OutFile)
   if ($Uri -like "*SHA256SUMS") {
@@ -19,7 +19,7 @@ function Invoke-WebRequest {
     $hash = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($bytes)).ToLower()
     "$hash  Family.Archive.Check.msi" | Set-Content -NoNewline $OutFile
   } else {
-    $(if ($script:Tampered) { "tampered-bytes" } else { "installer-bytes" }) | Set-Content -NoNewline $OutFile
+    $(if ($global:FacInstallerTampered) { "tampered-bytes" } else { "installer-bytes" }) | Set-Content -NoNewline $OutFile
   }
 }
 
@@ -30,7 +30,7 @@ try {
   if ((Get-Content -Raw $saved) -ne "installer-bytes") { throw "Saved installer bytes changed." }
 
   Remove-Item $saved
-  $script:Tampered = $true
+  $global:FacInstallerTampered = $true
   $rejected = $false
   try { & "$PSScriptRoot/../public/install.ps1" } catch {
     if ($_.Exception.Message -like "*did not match its checksum*") { $rejected = $true } else { throw }
@@ -41,4 +41,5 @@ try {
 } finally {
   Remove-Item $root -Recurse -Force -ErrorAction SilentlyContinue
   Remove-Item Env:FAC_DOWNLOADS_DIR -ErrorAction SilentlyContinue
+  Remove-Variable FacInstallerTampered -Scope Global -ErrorAction SilentlyContinue
 }
