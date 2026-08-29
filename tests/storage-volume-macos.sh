@@ -6,7 +6,8 @@ work_dir="$(mktemp -d /tmp/family-archive-check-apfs.XXXXXX)"
 cleanup() { rm -rf "$work_dir"; }
 trap cleanup EXIT
 
-if ! diskutil info "$work_dir" | tr '[:upper:]' '[:lower:]' | grep -q 'apfs'; then
+volume_device="$(df -P "$work_dir" | awk 'END { print $1 }')"
+if ! diskutil info "$volume_device" | tr '[:upper:]' '[:lower:]' | grep -q 'file system personality:.*apfs'; then
   echo "The macOS runner work volume is not APFS." >&2
   exit 1
 fi

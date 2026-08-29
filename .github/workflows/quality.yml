@@ -72,7 +72,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - name: Install exFAT tools
         if: matrix.filesystem == 'exFAT'
-        run: sudo apt-get update && sudo apt-get install -y exfatprogs
+        run: sudo apt-get update && sudo apt-get install -y exfatprogs exfat-fuse
       - name: Scan valid media on the mounted target filesystem (Unix)
         if: matrix.filesystem != 'NTFS'
         shell: bash

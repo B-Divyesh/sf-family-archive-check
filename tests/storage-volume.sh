@@ -32,15 +32,32 @@ trap cleanup EXIT
 mkdir -p "$mount_path"
 truncate -s 32M "$image_path"
 mkfs.exfat -n FAC_EXFAT "$image_path" >/dev/null
-as_root mount -o loop "$image_path" "$mount_path"
+fsck.exfat -n "$image_path" >/dev/null
+
+# GitHub's Ubuntu image can expose exFAT either through its kernel driver or
+# through exfat-fuse. Both mount the same freshly formatted exFAT image; the
+# latter reports a FUSE filesystem type to findmnt.
+if as_root mount -t exfat -o loop "$image_path" "$mount_path"; then
+  :
+elif command -v mount.exfat-fuse >/dev/null 2>&1; then
+  as_root mount.exfat-fuse "$image_path" "$mount_path"
+else
+  echo "Neither an exFAT kernel mount nor mount.exfat-fuse is available." >&2
+  exit 1
+fi
 
 actual_filesystem="$(findmnt --noheadings --output FSTYPE --target "$mount_path" | tr -d '[:space:]')"
-if [[ "$actual_filesystem" != "exfat" ]]; then
-  echo "Expected exfat loopback volume, got $actual_filesystem" >&2
+actual_source="$(findmnt --noheadings --output SOURCE --target "$mount_path" | tr -d '[:space:]')"
+if [[ "$actual_filesystem" != "exfat" && "$actual_filesystem" != fuse* ]]; then
+  echo "Expected an exFAT or FUSE-backed exFAT volume, got $actual_filesystem" >&2
+  exit 1
+fi
+if [[ "$actual_source" != "$image_path" && "$actual_source" != *"$image_path"* ]]; then
+  echo "Expected the mounted source to be the exFAT test image, got $actual_source" >&2
   exit 1
 fi
 
 mkdir -p "$fixture_path"
 cp tests/fixtures/valid.* "$fixture_path/"
-FAC_VOLUME_FIXTURE_ROOT="$fixture_path" FAC_EXPECTED_FILESYSTEM="exfat" \
+FAC_VOLUME_FIXTURE_ROOT="$fixture_path" FAC_EXPECTED_FILESYSTEM="exfat|fuse" \
   cargo test --manifest-path src-tauri/Cargo.toml mounted_volume_fixture -- --exact

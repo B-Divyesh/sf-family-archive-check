@@ -528,7 +528,9 @@ mod tests {
         let fixture_root = PathBuf::from(root);
         let observed_filesystem = mounted_filesystem_type(&fixture_root).to_ascii_lowercase();
         assert!(
-            observed_filesystem.contains(&expected_filesystem),
+            expected_filesystem
+                .split('|')
+                .any(|expected| observed_filesystem.contains(expected)),
             "expected {expected_filesystem} filesystem, observed {observed_filesystem}"
         );
 
@@ -571,9 +573,23 @@ mod tests {
 
     #[cfg(target_os = "macos")]
     fn mounted_filesystem_type(path: &Path) -> String {
+        let volume_device = String::from_utf8(
+            std::process::Command::new("df")
+                .args(["-P"])
+                .arg(path)
+                .output()
+                .expect("df must be available in the macOS storage matrix")
+                .stdout,
+        )
+        .expect("df output must be UTF-8")
+        .lines()
+        .last()
+        .and_then(|line| line.split_whitespace().next())
+        .expect("df must identify the macOS volume")
+        .to_owned();
         std::process::Command::new("diskutil")
             .arg("info")
-            .arg(path)
+            .arg(volume_device)
             .output()
             .expect("diskutil must be available in the macOS storage matrix")
             .stdout
