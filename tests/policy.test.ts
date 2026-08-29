@@ -5,6 +5,16 @@ import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 
+function contrast(hexA: string, hexB: string) {
+  const luminance = (hex: string) => {
+    const channels = hex.match(/[a-f0-9]{2}/gi)!.map((value) => Number.parseInt(value, 16) / 255);
+    const linear = channels.map((value) => value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4);
+    return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2];
+  };
+  const [lighter, darker] = [luminance(hexA), luminance(hexB)].sort((a, b) => b - a);
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
 describe('release policies', () => {
   it('keeps the package, desktop, and visible release versions aligned', () => {
     const packageJson = JSON.parse(readFileSync('package.json', 'utf8'));
@@ -66,5 +76,19 @@ esac
     expect(config.routes).toContainEqual({ route: '/demo', rewrite: '/index.html' });
     expect(config.routes).toContainEqual({ route: '/assets/*', headers: { 'Cache-Control': 'public, max-age=31536000, immutable' } });
     expect(config.responseOverrides['404']).toEqual({ rewrite: '/404.html' });
+  });
+
+  it('keeps result and action text colors at WCAG AA contrast', () => {
+    const css = readFileSync('src/styles.css', 'utf8');
+    const color = (name: string) => css.match(new RegExp(`--${name}:\\s*(#[a-f0-9]{6})`, 'i'))?.[1];
+    const raised = color('raised')!;
+    const teal = color('teal')!;
+    const coral = color('coral')!;
+    const green = color('green')!;
+    const muted = color('muted')!;
+
+    for (const [foreground, background] of [[teal, raised], [coral, raised], [muted, raised], ['#ffffff', teal], ['#ffffff', coral], ['#ffffff', green]]) {
+      expect(contrast(foreground, background)).toBeGreaterThanOrEqual(4.5);
+    }
   });
 });

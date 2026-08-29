@@ -73,11 +73,11 @@ test('service worker replaces stale pages online and keeps the update offline', 
 
   await page.reload();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Check every family photo has a copy');
-  await expect(page.getByText('Version 0.1.4')).toBeVisible();
+  await expect(page.getByText('Version 0.1.5')).toBeVisible();
 
   await context.setOffline(true);
   await page.reload();
-  await expect(page.getByText('Version 0.1.4')).toBeVisible();
+  await expect(page.getByText('Version 0.1.5')).toBeVisible();
 });
 
 test('@claim:paid-license links to the $29 household checkout', async ({ page }) => {

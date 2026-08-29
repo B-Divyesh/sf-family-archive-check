@@ -2,7 +2,7 @@
 
 ## Status
 
-Local repair verification is complete for version `0.1.4`. This handoff will be updated with the pushed commit, production deployment, and live checks after publication.
+Local repair verification is complete for version `0.1.5`. This handoff will be updated with the pushed commit, production deployment, and live checks after publication.
 
 ## Repair made
 
@@ -14,7 +14,7 @@ Independent verification of candidate `a2a14da843e2d2ec09542f8f3371c0d4ddcfe55c`
 - Client-side navigation and `popstate` (back/forward) focus the new `<h1>` and update the polite route announcer.
 - Non-navigation re-renders no longer unexpectedly move focus to the heading.
 
-The desktop-app, static-site, demo, privacy, offline, release-download, and local-first behaviors remain unchanged. The release version was advanced to `0.1.4` consistently across npm, Cargo, Tauri, UI, lockfiles, and the manual release-workflow default.
+The desktop-app, static-site, demo, privacy, offline, release-download, and local-first behaviors remain unchanged. The release version was advanced to `0.1.5` consistently across npm, Cargo, Tauri, UI, lockfiles, and the manual release-workflow default. A clean GitHub CI run also exposed six serious contrast failures on the result screen; the teal, coral, green, muted, and raised palette tokens were deepened or clarified so every result-screen text pair clears WCAG 4.5:1.
 
 ## Regression coverage
 
@@ -25,7 +25,7 @@ The desktop-app, static-site, demo, privacy, offline, release-download, and loca
 3. the wordmark, Demo, Check folders, and Privacy remain in forward order;
 4. SPA navigation to Demo and browser Back both focus the new route heading.
 
-The full Playwright suite also retains checks for hidden file-input focus, desktop and 390 px layouts, 200% text, all public routes, serious/critical Axe findings, demo isolation, offline reload/update, privacy request boundaries, 404/cache policy, export, handoff, license, corrupt-media, and duplicate-folder behavior.
+`tests/policy.test.ts` also calculates contrast directly from the shipped CSS tokens and requires every result/action text pair to meet 4.5:1. The full Playwright suite retains checks for hidden file-input focus, desktop and 390 px layouts, 200% text, all public routes, serious/critical Axe findings, demo isolation, offline reload/update, privacy request boundaries, 404/cache policy, export, handoff, license, corrupt-media, and duplicate-folder behavior.
 
 ## Local verification
 
@@ -49,13 +49,13 @@ npm run build
 Results:
 
 - Fresh `npm ci`: 65 packages, 0 vulnerabilities.
-- `npm test`: 12 Vitest tests and 20 Playwright tests passed.
+- `npm test`: 13 Vitest tests and 20 Playwright tests passed.
 - TypeScript, formatting, both production bundles, 4 Rust tests, and both warnings-as-errors Clippy modes passed.
 - The debug Tauri executable built and stayed alive for the 12-second Xvfb smoke test; only expected headless EGL/DRI3 warnings appeared.
 - The production-only boundary installed 19 packages with 0 vulnerabilities and built both `dist/site` and `dist/app`; Vite remains a production dependency for this supported deployment path.
 - Every one of the 16 commands in `.factory/claims.json` passed independently, including both Rust claims and all browser claims.
 - Initial site JavaScript is 33.19 KB raw / 11.79 KB gzip plus a 2.48 KB core chunk; CSS is 15.83 KB raw / 4.28 KB gzip.
-- Local Lighthouse 13.4.1 mobile: performance 99, accessibility 100, best practices 100, SEO 100; LCP 2,053 ms, CLS 0, TBT 30 ms.
+- Local Lighthouse 13.4.1 mobile: performance 100, accessibility 100, best practices 100, SEO 100; LCP 1,506 ms, CLS 0, TBT 30 ms.
 - The factory URL verifier found the title, `lang=en`, one `<h1>`, one `<main>`, no missing image alternatives, no unlabeled buttons, and no browser console errors.
 
 Evidence:

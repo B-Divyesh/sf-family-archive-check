@@ -2,12 +2,12 @@
   color-scheme: light;
   --ink: #172a2a;
   --paper: #f4ebd8;
-  --raised: #fff9ea;
-  --teal: #0e5d5e;
+  --raised: #fffbea;
+  --teal: #003f40;
   --gold: #d49b2a;
-  --coral: #842d27;
-  --green: #1f6843;
-  --muted: #414a46;
+  --coral: #4e1210;
+  --green: #185733;
+  --muted: #202824;
   --display: "Arial Narrow", "Aptos Narrow", "Roboto Condensed", sans-serif;
   --body: Georgia, "Times New Roman", serif;
   font-family: var(--body);
