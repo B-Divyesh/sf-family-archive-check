@@ -134,7 +134,7 @@ figcaption { margin-top: 20px; }
 .empty-guidance h2 { font-size: 1.4rem; }
 .empty-guidance p { margin-inline: auto; }
 .result-panel { animation: rise-in 220ms ease-out both; }
-@keyframes rise-in { from { opacity: 0; transform: translateY(8px); } }
+@keyframes rise-in { from { transform: translateY(8px); } }
 .verdict { display: flex; align-items: center; gap: 20px; padding: 28px 32px; background: var(--green); color: white; }
 .verdict.attention { background: var(--coral); }
 .verdict > span { display: grid; place-items: center; width: 52px; height: 52px; border: 4px double white; border-radius: 50%; font: 800 1.5rem var(--display); }
