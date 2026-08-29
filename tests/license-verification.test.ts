@@ -4,6 +4,7 @@ import {
   LICENSE_VERIFY_LIMIT,
   LICENSE_VERIFY_WINDOW_MS,
   clientAddress,
+  createLicenseVerificationLimiter,
   verifyLicenseRequest
 } from '../api/src/license-verification.js';
 
@@ -140,6 +141,11 @@ describe('product license verification API', () => {
     });
     expect(clientAddress(headers)).toBe('2001:db8::42');
     expect(clientAddress(new Headers({ 'x-forwarded-for': '198.51.100.99' }))).toBe('unattributed-client');
+  });
+
+  it('uses the dedicated Static Web Apps storage setting when host storage is unavailable', () => {
+    const limiter = createLicenseVerificationLimiter({ LICENSE_RATE_LIMIT_STORAGE: 'UseDevelopmentStorage=true' });
+    expect(limiter).toBeInstanceOf(AzureTableRateLimiter);
   });
 
   it('@claim:license-privacy forwards only the pasted token to Sociobot', async () => {

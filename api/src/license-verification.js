@@ -141,7 +141,11 @@ export class UnavailableRateLimiter {
 }
 
 export function createLicenseVerificationLimiter(environment = process.env) {
-  const connectionString = environment.AzureWebJobsStorage;
+  // Static Web Apps does not expose its host storage setting to user code.
+  // The production deployment supplies LICENSE_RATE_LIMIT_STORAGE from the
+  // factory-owned Azure Storage account; standalone Functions can use their
+  // normal AzureWebJobsStorage setting.
+  const connectionString = environment.LICENSE_RATE_LIMIT_STORAGE || environment.AzureWebJobsStorage;
   if (!connectionString) return new UnavailableRateLimiter();
 
   return new AzureTableRateLimiter({
