@@ -45,5 +45,6 @@ Live site checked cold: <https://family-archive-check.sociobot.in>
 - Lighthouse mobile: local 99/100/100/100 and live 100/100/100/100 for performance/accessibility/best practices/SEO. Live LCP 1.2 s, CLS 0, TBT 40 ms.
 - Bundles: initial JS 38.69 KB raw across three chunks (13.80 KB gzip); CSS 16.03 KB raw (4.33 KB gzip); mobile hero 40.94 KB.
 - Final deployment `96dbf482-cb1c-44c4-914e-14b910e63b75` succeeded. Cold desktop/mobile, demo/reset/exit/storage, all route metadata, handoff content, 404 shell/status, reviewed copy, and console checks were repeated on the custom domain.
+- [Desktop release v0.1.6](https://github.com/B-Divyesh/sf-family-archive-check/releases/tag/v0.1.6) passed all four platform builds and its checksum job. A downloaded DEB matched `SHA256SUMS`; every `latest.json` platform URL targets v0.1.6; the cold live Linux button resolved to the published AppImage without console errors.
 
 No review finding remains open.

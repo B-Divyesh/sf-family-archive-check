@@ -51,6 +51,14 @@ Deployment:
 - Cold live checks confirmed first-view facts, one-click demo, reset/exit, exact real-storage preservation, all route titles/canonicals, handoff content, 404 shell/status, legal links, revised copy, and no unexpected console errors.
 - Live screenshots: `.factory/repair-artifacts/polish-1-desktop-live.png`, `polish-1-mobile-live.png`, `polish-1-demo-live.png`, and `polish-1-not-found-live.png`.
 
+Desktop release:
+
+- Tag `v0.1.6` points to final repair commit `43f750885b863fed2298e361af0c4c5190fb4811`.
+- [Release workflow 33267370733](https://github.com/B-Divyesh/sf-family-archive-check/actions/runs/33267370733) passed for Linux, Windows, Intel macOS, Apple Silicon macOS, and checksums.
+- The public [v0.1.6 release](https://github.com/B-Divyesh/sf-family-archive-check/releases/tag/v0.1.6) contains AppImage, DEB, RPM, MSI, EXE, both DMGs, both app archives, `SHA256SUMS`, and `latest.json`.
+- Downloaded `Family.Archive.Check_0.1.6_amd64.deb` passed `sha256sum -c` against the published checksum file. `latest.json` parsed successfully and every platform URL targets v0.1.6.
+- A cold Linux visit resolved “Download for Linux” to the real v0.1.6 AppImage with no console errors.
+
 ## Run and verify
 
 ```sh
