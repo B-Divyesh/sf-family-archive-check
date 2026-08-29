@@ -1,4 +1,4 @@
-const CACHE = 'family-archive-check-v2';
+const CACHE = 'family-archive-check-v3';
 const CORE = ['/', '/demo', '/check', '/privacy', '/terms', '/assets/archive-route.webp', '/assets/archive-route-800.webp', '/favicon.svg'];
 
 self.addEventListener('install', (event) => {
@@ -22,7 +22,8 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   const request = event.request;
-  if (request.method !== 'GET' || new URL(request.url).origin !== self.location.origin) return;
+  const url = new URL(request.url);
+  if (request.method !== 'GET' || url.origin !== self.location.origin || url.pathname.startsWith('/api/')) return;
   event.respondWith((async () => {
     if (request.mode === 'navigate') {
       try {

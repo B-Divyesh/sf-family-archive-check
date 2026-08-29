@@ -10,9 +10,12 @@ const SITE = 'https://family-archive-check.sociobot.in';
 const REPO = 'B-Divyesh/sf-family-archive-check';
 const LICENSE_KEY = `sb_license:${PRODUCT}`;
 const LICENSE_CACHE_KEY = `${LICENSE_KEY}:verdict`;
+const isTauri = '__TAURI_INTERNALS__' in window;
+const LICENSE_VERIFY_ENDPOINT = (__APP_BUILD__ || isTauri)
+  ? `${SITE}/api/license/verify`
+  : '/api/license/verify';
 const REAL_PROFILES_KEY = `${PRODUCT}:profiles`;
 const app = document.querySelector<HTMLDivElement>('#app')!;
-const isTauri = '__TAURI_INTERNALS__' in window;
 let nativeRoute = '/check';
 let primaryScan: TargetScan | undefined;
 let backupScan: TargetScan | undefined;
@@ -94,7 +97,7 @@ function footer() {
   return `<footer class="site-footer">
     <p>Check family photo copies before handoff.</p>
     <nav aria-label="Footer navigation"><a href="/privacy" data-link>Privacy</a><a href="/terms" data-link>Terms</a><a href="https://sociobot.in" rel="external">Built by Param Factory <span class="sr-only">(external site)</span></a></nav>
-    <p>Version 0.1.7 · Generated art disclosed in the design notes.</p>
+    <p>Version 0.1.8 · Generated art disclosed in the design notes.</p>
   </footer>`;
 }
 
@@ -158,7 +161,7 @@ function legal(kind: 'privacy' | 'terms') {
   const privacy = kind === 'privacy';
   return shell(kind, `<article class="legal"><p class="eyebrow">Effective 28 August 2026</p><h1 tabindex="-1">${privacy ? 'Privacy without fine print' : 'Terms for using the app'}</h1>${privacy ? `
     <h2>What stays on your device</h2><p>Folder names, file details, sample checks, and recovery file lists stay on your device. We do not receive them.</p>
-    <h2>License checks</h2><p>If you add a license, the app sends only that token to Sociobot. The token and last result stay in local storage.</p>
+    <h2>License checks</h2><p>If you add a license, the app sends only that token through our verification endpoint to Sociobot. It allows 10 checks per client address in 10 minutes. After that, it returns a retry time. The token and last result stay in local storage.</p>
     <h2>Website requests</h2><p>The website asks GitHub for the latest public release. We use no ad trackers or third-party fonts.</p>
     <h2>Remove saved data</h2><p>Remove a license in the app, or clear this site’s storage in your browser settings.</p>` : `
     <h2>Use it as a check, not a backup</h2><p>The app reports what it can read and compare. Keep independent backups and test recovery yourself.</p>
@@ -389,8 +392,14 @@ async function verifyLicense(token: string) {
   const status = document.querySelector<HTMLElement>('#license-status');
   if (status) status.textContent = 'Checking this license…';
   try {
-    const response = await fetch(`https://api.sociobot.in/api/v1/products/${PRODUCT}/verify?license=${encodeURIComponent(token)}`);
-    const data = await response.json() as { valid: boolean; reason?: string };
+    const response = await fetch(`${LICENSE_VERIFY_ENDPOINT}?license=${encodeURIComponent(token)}`);
+    const data = await response.json() as { valid: boolean; reason?: string; retry_after_seconds?: number };
+    if (response.status === 429 || data.reason === 'rate_limited') {
+      const seconds = Number(response.headers.get('Retry-After') ?? data.retry_after_seconds) || 1;
+      if (status) status.textContent = `Too many license checks from this connection. Try again in ${seconds} seconds.`;
+      return;
+    }
+    if (!response.ok || data.reason === 'unavailable') throw new Error('License verification unavailable');
     localStorage.setItem(LICENSE_KEY, token);
     localStorage.setItem(LICENSE_CACHE_KEY, JSON.stringify({ active: data.valid, checkedAt: Date.now(), reason: data.reason }));
     if (status) status.textContent = data.valid ? 'License active. Unlimited checks are ready.' : 'This license is not active. Check the token or buy a new license.';

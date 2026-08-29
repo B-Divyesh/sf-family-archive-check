@@ -97,6 +97,15 @@ esac
     expect(config.responseOverrides['404']).toEqual({ rewrite: '/404.html' });
   });
 
+  it('keeps license verification outside the offline cache and permits the desktop proxy connection', () => {
+    const serviceWorker = readFileSync('public/sw.js', 'utf8');
+    const tauri = JSON.parse(readFileSync('src-tauri/tauri.conf.json', 'utf8'));
+    expect(serviceWorker).toContain("url.pathname.startsWith('/api/')");
+    expect(serviceWorker).toContain("family-archive-check-v3");
+    expect(tauri.app.security.csp).toContain('https://family-archive-check.sociobot.in');
+    expect(tauri.app.security.csp).not.toContain('https://api.sociobot.in');
+  });
+
   it('keeps result and action text colors at WCAG AA contrast', () => {
     const css = readFileSync('src/styles.css', 'utf8');
     const color = (name: string) => css.match(new RegExp(`--${name}:\\s*(#[a-f0-9]{6})`, 'i'))?.[1];

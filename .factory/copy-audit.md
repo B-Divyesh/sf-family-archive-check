@@ -30,7 +30,7 @@ Audited 2026-08-29 after the F-1-13 through F-1-25 rewrites. Hyphenated terms, f
 | 11 | Dodo Payments takes the payment and handles order-related questions and returns. |
 | 17 | Your computer may warn you because this preview app is not yet signed. |
 | 6 | Check family photo copies before handoff. |
-| 9 | Version 0.1.6 · Generated art disclosed in the design notes. |
+| 9 | Version 0.1.8 · Generated art disclosed in the design notes. |
 
 Transient release copy is also within the limit: “Checking the latest release for this device.” (7), “Downloads are being published.” (4), and “The release page shows current progress.” (7).
 
@@ -44,6 +44,9 @@ All interface sentences were extracted from `/demo`, `/check`, `/privacy`, `/ter
 | 8 | Choosing starts a read-only inventory. |
 | 17 | The website can spot the same folder name. Only the desktop app can confirm that folders are on separate drives. |
 | 16 | Folder names, file details, sample checks, and recovery file lists stay on your device. |
+| 17 | If you add a license, the app sends only that token through our verification endpoint to Sociobot. |
+| 10 | It allows 10 checks per client address in 10 minutes. |
+| 8 | After that, it returns a retry time. |
 | 13 | The software is provided under the MIT License without a recovery guarantee. |
 | 12 | Dodo Payments handles payment, order questions, and returns. |
 | 10 | Compare the new folder with the recovery file list. |
@@ -58,6 +61,7 @@ The README was checked sentence by sentence. Its longest sentence has 21 words. 
 |---:|---|
 | 12 | The scanner tests valid JPEG, PNG, HEIC, MP4, and MOV fixtures. |
 | 14 | CI also scans those fixtures on APFS, NTFS, and exFAT volumes. |
+| 12 | The product verification endpoint forwards only the pasted token to Sociobot’s license service. |
 
 ## Terminology
 

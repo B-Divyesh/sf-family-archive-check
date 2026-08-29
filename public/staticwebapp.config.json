@@ -5,6 +5,7 @@
     { "route": "/privacy", "rewrite": "/index.html" },
     { "route": "/terms", "rewrite": "/index.html" },
     { "route": "/print/*", "rewrite": "/index.html" },
+    { "route": "/api/*", "headers": { "Cache-Control": "no-store" } },
     { "route": "/assets/*", "headers": { "Cache-Control": "public, max-age=31536000, immutable" } },
     { "route": "/sw.js", "headers": { "Cache-Control": "no-cache" } },
     { "route": "/index.html", "headers": { "Cache-Control": "no-cache" } }
@@ -13,7 +14,7 @@
     "404": { "rewrite": "/404.html" }
   },
   "globalHeaders": {
-    "Content-Security-Policy": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://api.github.com https://api.sociobot.in; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self' https://api.sociobot.in",
+    "Content-Security-Policy": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://api.github.com; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'",
     "X-Content-Type-Options": "nosniff",
     "Referrer-Policy": "strict-origin-when-cross-origin",
     "Permissions-Policy": "camera=(), microphone=(), geolocation=()"

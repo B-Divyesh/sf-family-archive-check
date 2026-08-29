@@ -122,8 +122,15 @@
     "id": "license-privacy",
     "claim": "A license check sends only the pasted token to Sociobot.",
     "where": "privacy page and README",
-    "test": "npm run test:e2e -- --grep @claim:license-privacy",
-    "sandbox": "recorded license response; assert one GET contains only the encoded token and no body"
+    "test": "npm run test:unit -- --testNamePattern @claim:license-privacy",
+    "sandbox": "product verification handler with a recorded upstream response; assert its one Sociobot GET contains only the encoded token and no body"
+  },
+  {
+    "id": "license-rate-limit",
+    "claim": "License verification allows 10 requests per client in 10 minutes, then returns 429 with Retry-After.",
+    "where": "privacy page and README",
+    "test": "npm run test:unit -- --testNamePattern @claim:license-rate-limit",
+    "sandbox": "product verification handler with one recorded client address; make 11 sequential requests and assert request 11 is 429 with a numeric Retry-After header"
   },
   {
     "id": "installer-checksum",

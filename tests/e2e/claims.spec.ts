@@ -92,12 +92,18 @@ test('service worker replaces stale pages online and keeps the update offline', 
 
   await page.reload();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Check every family photo and video has a copy');
-  await expect(page.getByText('Version 0.1.7')).toBeVisible();
+  await expect(page.getByText('Version 0.1.8')).toBeVisible();
 
   await context.setOffline(true);
   await page.reload();
-  await expect(page.getByText('Version 0.1.7')).toBeVisible();
+  await expect(page.getByText('Version 0.1.8')).toBeVisible();
 });
+
+test.describe('native license flow', () => {
+  // This test simulates a Tauri window inside a static-site browser. Its deployed
+  // CSP is intentionally different from the native Tauri CSP, which permits the
+  // product verification endpoint.
+  test.use({ bypassCSP: true });
 
 test('@claim:paid-license unlocks a 501-file check and a reusable saved profile', async ({ page }) => {
   const files = Array.from({ length: 501 }, (_, index) => ({
@@ -124,11 +130,15 @@ test('@claim:paid-license unlocks a 501-file check and a reusable saved profile'
       }
     });
   }, { main: scan('/Volumes/Family Archive', 'Main archive', 'device:main'), backup: scan('/Volumes/Blue Backup', 'Independent copy', 'device:backup') });
-  await page.route('https://api.sociobot.in/api/v1/products/family-archive-check/verify?license=test-license', (route) => route.fulfill({
-    status: 200,
-    contentType: 'application/json',
-    body: JSON.stringify({ valid: true, reason: 'ok' })
-  }));
+  let verificationUrl = '';
+  await page.route((url) => url.pathname === '/api/license/verify', (route) => {
+    verificationUrl = route.request().url();
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ valid: true, reason: 'ok' })
+    });
+  });
   await page.goto('/');
   const link = page.getByRole('link', { name: 'Buy household license — $29' });
   await expect(link).toHaveAttribute('href', 'https://api.sociobot.in/api/v1/products/family-archive-check/checkout');
@@ -143,6 +153,7 @@ test('@claim:paid-license unlocks a 501-file check and a reusable saved profile'
   await page.getByLabel('Or paste a license token').fill('test-license');
   await page.getByRole('button', { name: 'Verify license' }).click();
   await expect(page.getByText('License active', { exact: true })).toBeVisible();
+  expect(verificationUrl).toBe('https://family-archive-check.sociobot.in/api/license/verify?license=test-license');
   await expect(page.getByText('Unlimited checks and saved folder profiles are available.')).toBeVisible();
   await page.getByRole('button', { name: 'Check both folders' }).click();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Both archive copies are ready');
@@ -156,6 +167,8 @@ test('@claim:paid-license unlocks a 501-file check and a reusable saved profile'
   await expect(page.getByRole('button', { name: 'Check both folders' })).toBeEnabled();
 });
 
+});
+
 test('@claim:payment-policy checkout identifies Dodo as payment and returns handler', async ({ request }) => {
   const response = await request.get('https://api.sociobot.in/api/v1/products/family-archive-check/checkout');
   expect(response.url()).toMatch(/^https:\/\/checkout\.dodopayments\.com\/session\//);
@@ -164,9 +177,9 @@ test('@claim:payment-policy checkout identifies Dodo as payment and returns hand
   expect(body).toContain('handles order-related inquiries and returns');
 });
 
-test('@claim:license-privacy sends only the pasted token to Sociobot', async ({ page }) => {
+test('the browser sends a pasted license only to the product verification proxy', async ({ page }) => {
   const requests: { url: string; method: string; body: string | null }[] = [];
-  await page.route('https://api.sociobot.in/api/v1/products/family-archive-check/verify?license=private-token', async (route) => {
+  await page.route('http://127.0.0.1:4173/api/license/verify?license=private-token', async (route) => {
     const request = route.request();
     requests.push({ url: request.url(), method: request.method(), body: request.postData() });
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ valid: true, reason: 'ok' }) });
@@ -176,10 +189,24 @@ test('@claim:license-privacy sends only the pasted token to Sociobot', async ({ 
   await page.getByRole('button', { name: 'Verify license' }).click();
   await expect(page.getByText('License active', { exact: true })).toBeVisible();
   expect(requests).toEqual([{
-    url: 'https://api.sociobot.in/api/v1/products/family-archive-check/verify?license=private-token',
+    url: 'http://127.0.0.1:4173/api/license/verify?license=private-token',
     method: 'GET',
     body: null
   }]);
+});
+
+test('the license screen explains when the product verifier throttles repeated attempts', async ({ page }) => {
+  await page.route('http://127.0.0.1:4173/api/license/verify?license=busy-token', (route) => route.fulfill({
+    status: 429,
+    headers: { 'Retry-After': '42' },
+    contentType: 'application/json',
+    body: JSON.stringify({ valid: false, reason: 'rate_limited', retry_after_seconds: 42 })
+  }));
+  await page.goto('/check');
+  await page.getByLabel('Or paste a license token').fill('busy-token');
+  await page.getByRole('button', { name: 'Verify license' }).click();
+  await expect(page.getByText('Too many license checks from this connection. Try again in 42 seconds.')).toBeVisible();
+  expect(await page.evaluate(() => localStorage.getItem('sb_license:family-archive-check'))).toBeNull();
 });
 
 test('@claim:no-tracking loads no trackers or third-party fonts and scripts', async ({ page }) => {

@@ -80,6 +80,6 @@ npm run tauri dev
 
 ## Privacy and license
 
-The scanner reads chosen folders locally. The website sends no archive data away. A license check sends only the pasted token to Sociobot’s license service. See `/privacy` and `/terms` on the product site.
+The scanner reads chosen folders locally. The website sends no archive data away. The product verification endpoint forwards only the pasted token to Sociobot’s license service. It allows 10 requests per client address in 10 minutes. After that, it returns HTTP 429 with a `Retry-After` value. See `/privacy` and `/terms` on the product site.
 
 The source code is available under the [MIT License](LICENSE).
