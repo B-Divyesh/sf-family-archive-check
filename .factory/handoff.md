@@ -24,8 +24,9 @@ Repair commits:
 - `c0e0dc7a640158dddfddc127d6dd372941e1152a` — product, claims, copy, routing, layout, and tests.
 - `59b906b` — corrected the Windows tampered-fixture scope; Windows CI job `99138064392` passed.
 - `ecccc9d` — kept result entrance motion at full opacity so text contrast never dips during animation; the accessibility test passed three consecutive repeats and five cold live demo runs.
+- `d5c2cf33ec06808c2f78344d114c4c602d978fa9` — recorded the complete finding and verification evidence; [quality run 33267041290](https://github.com/B-Divyesh/sf-family-archive-check/actions/runs/33267041290) passed.
 
-Clean-clone verification used `/tmp/fac-polish-clean.cX1f3k` at `c0e0dc7a640158dddfddc127d6dd372941e1152a`:
+Final clean-clone verification used `/tmp/fac-polish-final.Nlk5zB` at `d5c2cf33ec06808c2f78344d114c4c602d978fa9`:
 
 - All 21 claim commands from `.factory/claims.json` passed individually.
 - `npm test`: 14 Vitest tests and 25 Playwright tests passed.

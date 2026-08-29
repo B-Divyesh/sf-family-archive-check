@@ -2,7 +2,7 @@
 
 Released candidate reviewed: `d565fa46fd169091c0b465e23cab616a1157baf6`  
 Review source: `0619d465dd1713426debac7f13c8f0bf18cfa894` / `.factory/review-1.md`  
-Repair commits: `c0e0dc7a640158dddfddc127d6dd372941e1152a`, `59b906b`, `ecccc9d`  
+Repair commits: `c0e0dc7a640158dddfddc127d6dd372941e1152a`, `59b906b`, `ecccc9d`, `d5c2cf3`
 Live site checked cold: <https://family-archive-check.sociobot.in>
 
 ## Every finding
@@ -37,8 +37,9 @@ Live site checked cold: <https://family-archive-check.sociobot.in>
 
 ## Cumulative verification
 
-- Every one of 21 `.factory/claims.json` commands passed separately in clean clone `/tmp/fac-polish-clean.cX1f3k`.
+- Every one of 21 `.factory/claims.json` commands passed separately in final clean clone `/tmp/fac-polish-final.Nlk5zB` at `d5c2cf33ec06808c2f78344d114c4c602d978fa9`.
 - Clean-clone aggregate: 14 Vitest tests, 25 Playwright tests, 4 Rust tests, TypeScript, Rust format, non-desktop clippy, desktop clippy, site build, and app build passed.
+- GitHub [quality run 33267041290](https://github.com/B-Divyesh/sf-family-archive-check/actions/runs/33267041290) passed on the same final commit.
 - Playwright axe: zero serious or critical violations on every public route and the 404, locally and live.
 - `/opt/fleet/lib/verify-url.sh`: no console errors; title, `lang`, one `h1`, `main`, image alt, and button names passed locally and live. See `repair-artifacts/polish-1-verify-*`.
 - Lighthouse mobile: local 99/100/100/100 and live 100/100/100/100 for performance/accessibility/best practices/SEO. Live LCP 1.2 s, CLS 0, TBT 40 ms.
