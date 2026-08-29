@@ -28,6 +28,7 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "4.10.2",
+    "@azure/data-tables": "13.3.2",
     "@playwright/test": "1.58.2",
     "@tauri-apps/cli": "2.11.4",
     "@types/node": "22.15.3",
