@@ -2,9 +2,9 @@
 
 ## Status
 
-Repair commit: `3aee1e3` (`fix: rate limit license verification`).
+Repair commit: `3aee1e3` (`fix: rate limit license verification`), with this evidence update committed after deployment.
 
-The release-blocking V5-1 finding from `.factory/verification-5.md` is repaired. This handoff is updated again with release and deployment evidence after the tagged release completes.
+The release-blocking V5-1 finding from `.factory/verification-5.md` is repaired, released, and deployed.
 
 ## What changed
 
@@ -28,7 +28,11 @@ The release-blocking V5-1 finding from `.factory/verification-5.md` is repaired.
 
 ## Release and deployment
 
-Pending in this revision: push `main`, tag `v0.1.8`, wait for the three-platform GitHub release and checksum manifest, deploy `dist/site` plus the `api/` function, and verify the live endpoint produces `429` with `Retry-After` after its documented allowance.
+- Pushed `main` and tag [`v0.1.8`](https://github.com/B-Divyesh/sf-family-archive-check/releases/tag/v0.1.8). The [release workflow](https://github.com/B-Divyesh/sf-family-archive-check/actions/runs/33276995284) passed for macOS arm64, macOS x64, Windows, Linux, and the checksum/manifest job.
+- The release has 11 assets. `latest.json` is valid and contains the expected five download URLs. The downloaded `Family.Archive.Check_0.1.8_amd64.deb` passed the published `SHA256SUMS` check (`21d49997d21db6b85c37b75dad97b0c197ebe6c749dc44f6720dac7ee34416ed`).
+- Deployed `dist/site` and `api/` to <https://family-archive-check.sociobot.in> (Static Web Apps deployment `b2e4fb79-0983-48a1-bad1-16c364b8634a`). The managed API upload completed successfully.
+- Live rate-limit proof, with a fresh forwarded client address: requests 1–10 to `/api/license/verify` returned `200`; request 11 returned `429`, `Retry-After: 597`, `X-RateLimit-Limit: 10`, `X-RateLimit-Remaining: 0`, `Cache-Control: no-store`, and `{"valid":false,"reason":"rate_limited","retry_after_seconds":597}`.
+- Live desktop and 390px browser smoke passed with no console errors. The deployed page renders Version 0.1.8, starts keyboard navigation at the skip link, has no horizontal overflow, and makes no direct `api.sociobot.in` browser request. Live Axe scans of `/`, `/demo`, `/privacy`, and `/terms` found zero serious or critical violations.
 
 ## Operator notes
 
