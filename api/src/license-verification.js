@@ -1,8 +1,13 @@
+import { TableClient } from '@azure/data-tables';
+import { createHmac } from 'node:crypto';
+
 export const LICENSE_VERIFY_LIMIT = 10;
 export const LICENSE_VERIFY_WINDOW_MS = 10 * 60 * 1000;
 
 const PRODUCT = 'family-archive-check';
 const UPSTREAM = `https://api.sociobot.in/api/v1/products/${PRODUCT}/verify`;
+const RATE_LIMIT_TABLE = 'familyarchivelimits';
+const RATE_LIMIT_PARTITION = 'license-verify-v1';
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, OPTIONS',
@@ -12,39 +17,148 @@ const CORS_HEADERS = {
   'Vary': 'Origin'
 };
 
-export class PerClientRateLimiter {
-  #buckets = new Map();
+function storageStatus(error, status) {
+  return error?.statusCode === status || error?.status === status;
+}
 
-  constructor(limit = LICENSE_VERIFY_LIMIT, windowMs = LICENSE_VERIFY_WINDOW_MS) {
+function rateDecision({ allowed, count, resetAt, limit, now }) {
+  return {
+    allowed,
+    limit,
+    remaining: allowed ? Math.max(0, limit - count) : 0,
+    retryAfter: Math.max(1, Math.ceil((resetAt - now) / 1000)),
+    resetAt
+  };
+}
+
+/**
+ * A shared Azure Tables limiter. Table entity ETags make every increment a
+ * compare-and-swap, so independently scaled Functions share the same ten
+ * request allowance. The table contains an HMAC of the platform address, not
+ * the address itself.
+ */
+export class AzureTableRateLimiter {
+  #ready;
+
+  constructor({
+    tableClient,
+    secret,
+    limit = LICENSE_VERIFY_LIMIT,
+    windowMs = LICENSE_VERIFY_WINDOW_MS,
+    partitionKey = RATE_LIMIT_PARTITION,
+    maxRetries = 16
+  }) {
+    if (!tableClient) throw new Error('A shared Azure Table client is required');
+    if (!secret) throw new Error('A rate-limit HMAC secret is required');
+    this.tableClient = tableClient;
+    this.secret = secret;
     this.limit = limit;
     this.windowMs = windowMs;
+    this.partitionKey = partitionKey;
+    this.maxRetries = maxRetries;
   }
 
-  take(client, now = Date.now()) {
-    const current = this.#buckets.get(client);
-    const bucket = !current || current.resetAt <= now
-      ? { count: 0, resetAt: now + this.windowMs }
-      : current;
-    const retryAfter = Math.max(1, Math.ceil((bucket.resetAt - now) / 1000));
+  async #ensureTable() {
+    if (!this.#ready) {
+      this.#ready = this.tableClient.createTable().catch((error) => {
+        // Concurrent cold starts race to create the table; an existing table
+        // is the expected outcome for every request after the first.
+        if (storageStatus(error, 409)) return;
+        this.#ready = undefined;
+        throw error;
+      });
+    }
+    return this.#ready;
+  }
 
-    if (bucket.count >= this.limit) {
-      this.#buckets.set(client, bucket);
-      return { allowed: false, limit: this.limit, remaining: 0, retryAfter, resetAt: bucket.resetAt };
+  #rowKey(client) {
+    return createHmac('sha256', this.secret).update(client).digest('base64url');
+  }
+
+  async take(client, now = Date.now()) {
+    await this.#ensureTable();
+    const partitionKey = this.partitionKey;
+    const rowKey = this.#rowKey(client);
+
+    for (let attempt = 0; attempt < this.maxRetries; attempt += 1) {
+      let current;
+      try {
+        current = await this.tableClient.getEntity(partitionKey, rowKey);
+      } catch (error) {
+        if (!storageStatus(error, 404)) throw error;
+      }
+
+      if (!current) {
+        const resetAt = now + this.windowMs;
+        try {
+          await this.tableClient.createEntity({ partitionKey, rowKey, count: 1, resetAt });
+          return rateDecision({ allowed: true, count: 1, resetAt, limit: this.limit, now });
+        } catch (error) {
+          // Another Function won the create race. Read the new entity and
+          // retry its conditional increment instead of granting another slot.
+          if (storageStatus(error, 409)) continue;
+          throw error;
+        }
+      }
+
+      const count = Number(current.count);
+      const resetAt = Number(current.resetAt);
+      if (!Number.isFinite(count) || !Number.isFinite(resetAt)) {
+        throw new Error('Invalid shared rate-limit entity');
+      }
+
+      if (resetAt > now && count >= this.limit) {
+        return rateDecision({ allowed: false, count, resetAt, limit: this.limit, now });
+      }
+
+      const next = resetAt <= now
+        ? { count: 1, resetAt: now + this.windowMs }
+        : { count: count + 1, resetAt };
+
+      try {
+        await this.tableClient.updateEntity(
+          { partitionKey, rowKey, ...next },
+          'Replace',
+          { etag: current.etag }
+        );
+        return rateDecision({ allowed: true, ...next, limit: this.limit, now });
+      } catch (error) {
+        // ETag precondition failures prove another request updated this bucket
+        // first. Retry the read and never issue a second allowance.
+        if (storageStatus(error, 412) || storageStatus(error, 404)) continue;
+        throw error;
+      }
     }
 
-    bucket.count += 1;
-    this.#buckets.set(client, bucket);
-    return { allowed: true, limit: this.limit, remaining: this.limit - bucket.count, retryAfter, resetAt: bucket.resetAt };
+    throw new Error('Shared rate-limit contention did not settle');
   }
 }
 
-export const licenseVerificationLimiter = new PerClientRateLimiter();
+export class UnavailableRateLimiter {
+  async take() {
+    throw new Error('Shared rate-limit storage is unavailable');
+  }
+}
+
+export function createLicenseVerificationLimiter(environment = process.env) {
+  const connectionString = environment.AzureWebJobsStorage;
+  if (!connectionString) return new UnavailableRateLimiter();
+
+  return new AzureTableRateLimiter({
+    tableClient: TableClient.fromConnectionString(connectionString, RATE_LIMIT_TABLE),
+    // AzureWebJobsStorage is an application secret shared by every Function
+    // instance. It is used only as the HMAC key and never written to storage.
+    secret: environment.LICENSE_RATE_LIMIT_HMAC_KEY || connectionString
+  });
+}
+
+export const licenseVerificationLimiter = createLicenseVerificationLimiter();
 
 export function clientAddress(headers) {
-  const forwarded = headers.get('x-forwarded-for')?.split(',')[0]?.trim();
-  const direct = headers.get('x-azure-clientip')?.trim() || headers.get('x-client-ip')?.trim();
-  const value = forwarded || direct || 'unknown-client';
-  return value.slice(0, 128);
+  // Azure Functions sets this header at the platform boundary. Do not accept
+  // X-Forwarded-For or X-Client-IP: callers can supply both to mint buckets.
+  const platformAddress = headers.get('x-azure-clientip')?.trim();
+  return platformAddress ? platformAddress.slice(0, 128) : 'unattributed-client';
 }
 
 function response(body, status, headers = {}) {
@@ -79,7 +193,15 @@ export async function verifyLicenseRequest(request, {
     return response({ valid: false, reason: 'missing_license' }, 400);
   }
 
-  const decision = limiter.take(clientAddress(request.headers), now());
+  let decision;
+  try {
+    decision = await limiter.take(clientAddress(request.headers), now());
+  } catch {
+    // A private paid-feature proxy must not fail open if shared storage cannot
+    // enforce its documented limit.
+    return response({ valid: false, reason: 'unavailable' }, 503);
+  }
+
   if (!decision.allowed) {
     return response(
       { valid: false, reason: 'rate_limited', retry_after_seconds: decision.retryAfter },
@@ -100,11 +222,13 @@ export async function verifyLicenseRequest(request, {
   }
 
   if (upstream.status === 429) {
-    const retryAfter = upstream.headers.get('retry-after') ?? String(decision.retryAfter);
+    // Keep the product response internally consistent. The upstream limit is
+    // independent of this per-client allowance and must not replace its retry
+    // time with a zero or conflicting value.
     return response(
-      { valid: false, reason: 'rate_limited', retry_after_seconds: Number(retryAfter) || decision.retryAfter },
+      { valid: false, reason: 'rate_limited', retry_after_seconds: decision.retryAfter },
       429,
-      { ...rateHeaders(decision), 'Retry-After': retryAfter }
+      rateHeaders(decision)
     );
   }
 

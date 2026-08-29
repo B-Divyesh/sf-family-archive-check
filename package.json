@@ -1,7 +1,7 @@
 {
   "name": "family-archive-check",
   "private": true,
-  "version": "0.1.8",
+  "version": "0.1.9",
   "type": "module",
   "engines": {
     "node": ">=22.12 <23"
@@ -14,6 +14,7 @@
     "build:app": "vite build --mode app --outDir dist/app",
     "preview": "vite preview --host 127.0.0.1 --port 4173 --outDir dist/site",
     "test:unit": "vitest run tests/*.test.ts",
+    "test:storage-matrix": "vitest run tests/storage-matrix.test.ts --testNamePattern @claim:filesystem-matrix",
     "test:e2e": "playwright test",
     "test": "npm run test:unit && npm run test:e2e",
     "typecheck": "tsc --noEmit",

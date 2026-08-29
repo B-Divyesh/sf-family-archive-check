@@ -97,7 +97,7 @@ function footer() {
   return `<footer class="site-footer">
     <p>Check family photo copies before handoff.</p>
     <nav aria-label="Footer navigation"><a href="/privacy" data-link>Privacy</a><a href="/terms" data-link>Terms</a><a href="https://sociobot.in" rel="external">Built by Param Factory <span class="sr-only">(external site)</span></a></nav>
-    <p>Version 0.1.8 · Generated art disclosed in the design notes.</p>
+    <p>Version 0.1.9 · Generated art disclosed in the design notes.</p>
   </footer>`;
 }
 
@@ -161,7 +161,7 @@ function legal(kind: 'privacy' | 'terms') {
   const privacy = kind === 'privacy';
   return shell(kind, `<article class="legal"><p class="eyebrow">Effective 28 August 2026</p><h1 tabindex="-1">${privacy ? 'Privacy without fine print' : 'Terms for using the app'}</h1>${privacy ? `
     <h2>What stays on your device</h2><p>Folder names, file details, sample checks, and recovery file lists stay on your device. We do not receive them.</p>
-    <h2>License checks</h2><p>If you add a license, the app sends only that token through our verification endpoint to Sociobot. It allows 10 checks per client address in 10 minutes. After that, it returns a retry time. The token and last result stay in local storage.</p>
+    <h2>License checks</h2><p>If you add a license, the app sends only that token through our verification endpoint to Sociobot. It allows 10 checks per client address in 10 minutes. After that, it returns a retry time. The endpoint stores a keyed address hash, counter, and reset time to enforce that limit. The token and last result stay in local storage.</p>
     <h2>Website requests</h2><p>The website asks GitHub for the latest public release. We use no ad trackers or third-party fonts.</p>
     <h2>Remove saved data</h2><p>Remove a license in the app, or clear this site’s storage in your browser settings.</p>` : `
     <h2>Use it as a check, not a backup</h2><p>The app reports what it can read and compare. Keep independent backups and test recovery yourself.</p>

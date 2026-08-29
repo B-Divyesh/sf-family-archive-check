@@ -70,6 +70,13 @@
     "sandbox": "shipped, independently parsed 2×2 image and 0.2-second video fixtures; scan and assert every sampled file is readable and hashed"
   },
   {
+    "id": "filesystem-matrix",
+    "claim": "CI scans the valid JPEG, PNG, HEIC, MP4, and MOV fixtures on APFS, NTFS, and exFAT volumes.",
+    "where": "README and storage acceptance matrix",
+    "test": "npm run test:storage-matrix",
+    "sandbox": "read the checked-in quality workflow, platform scripts, and native mounted-volume assertion; require APFS/macOS, NTFS/Windows, exFAT/Linux jobs and their filesystem checks before each fixture scan"
+  },
+  {
     "id": "independent-folders",
     "claim": "The same folder or storage device cannot pass as an independent copy.",
     "where": "folder check",

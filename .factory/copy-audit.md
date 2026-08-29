@@ -30,7 +30,7 @@ Audited 2026-08-29 after the F-1-13 through F-1-25 rewrites. Hyphenated terms, f
 | 11 | Dodo Payments takes the payment and handles order-related questions and returns. |
 | 17 | Your computer may warn you because this preview app is not yet signed. |
 | 6 | Check family photo copies before handoff. |
-| 9 | Version 0.1.8 · Generated art disclosed in the design notes. |
+| 9 | Version 0.1.9 · Generated art disclosed in the design notes. |
 
 Transient release copy is also within the limit: “Checking the latest release for this device.” (7), “Downloads are being published.” (4), and “The release page shows current progress.” (7).
 
@@ -47,6 +47,7 @@ All interface sentences were extracted from `/demo`, `/check`, `/privacy`, `/ter
 | 17 | If you add a license, the app sends only that token through our verification endpoint to Sociobot. |
 | 10 | It allows 10 checks per client address in 10 minutes. |
 | 8 | After that, it returns a retry time. |
+| 15 | The endpoint stores a keyed address hash, counter, and reset time to enforce that limit. |
 | 13 | The software is provided under the MIT License without a recovery guarantee. |
 | 12 | Dodo Payments handles payment, order questions, and returns. |
 | 10 | Compare the new folder with the recovery file list. |
