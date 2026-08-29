@@ -33,6 +33,7 @@ The release-blocking V5-1 finding from `.factory/verification-5.md` is repaired,
 - Deployed `dist/site` and `api/` to <https://family-archive-check.sociobot.in> (Static Web Apps deployment `b2e4fb79-0983-48a1-bad1-16c364b8634a`). The managed API upload completed successfully.
 - Live rate-limit proof, with a fresh forwarded client address: requests 1–10 to `/api/license/verify` returned `200`; request 11 returned `429`, `Retry-After: 597`, `X-RateLimit-Limit: 10`, `X-RateLimit-Remaining: 0`, `Cache-Control: no-store`, and `{"valid":false,"reason":"rate_limited","retry_after_seconds":597}`.
 - Live desktop and 390px browser smoke passed with no console errors. The deployed page renders Version 0.1.8, starts keyboard navigation at the skip link, has no horizontal overflow, and makes no direct `api.sociobot.in` browser request. Live Axe scans of `/`, `/demo`, `/privacy`, and `/terms` found zero serious or critical violations.
+- Live Lighthouse (mobile defaults) scored Performance **98**, Accessibility **100**, Best Practices **100**, and SEO **100**; LCP was 1,303 ms and CLS was 0.
 
 ## Operator notes
 
