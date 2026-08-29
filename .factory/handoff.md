@@ -1,4 +1,25 @@
-# Family Archive Check — polish round 1 handoff
+# Family Archive Check — verification 4 handoff
+
+## Current status — FAIL
+
+Independent verification on 2026-08-29 tested commit `6517f9915f7244731dc32dbe1a71dc96277a9b87` and `https://family-archive-check.sociobot.in`. The candidate is **not accepted**. Product code was not changed.
+
+Release-blocking findings:
+
+- The gold focus outline is 2.08:1 against the paper background, below the required 3:1 focus-indicator contrast.
+- The footer Terms link is about 35.8×44 px at 390 px on every SPA route (37.3×44 px on the standalone 404), below the required 44×44 touch target.
+- Public promises that sampling is repeatable and that every file is counted are absent from `.factory/claims.json` and lack tagged behavior tests.
+- The brief-required APFS, NTFS, exFAT, and valid common-codec integration matrix is not present; current scanner tests use the host filesystem and mostly malformed-codec fixtures.
+
+Low severity: a one-file result says “1 paths match across both folders.”
+
+Passing evidence remains substantial: all 21 declared claims pass after `npm ci`; `npm test` passes 14 unit and 25 browser tests; typecheck, lint, Rust tests/checks, both Clippy modes, `npm run build`, and `CI=true npm run tauri build -- --no-bundle` pass. The live deployment is byte-identical to candidate site output. Live axe has no serious/critical findings, Lighthouse is 98/100/100/100, offline reload works, the demo makes only same-origin requests, and license request 31 returns 429 with `Retry-After: 2` after an allowance of 30. The v0.1.6 Debian package installs, launches, opens the native sample, and matches its published SHA-256.
+
+Full evidence and remediation are in `.factory/verification-4.md`.
+
+---
+
+# Previous builder handoff — polish round 1
 
 ## Status
 
