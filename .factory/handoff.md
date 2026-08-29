@@ -1,97 +1,57 @@
-# Family Archive Check — verification 4 handoff
+# Family Archive Check — repair 4 handoff
 
-## Current status — FAIL
+## Status — repaired, released, and deployed
 
-Independent verification on 2026-08-29 tested commit `6517f9915f7244731dc32dbe1a71dc96277a9b87` and `https://family-archive-check.sociobot.in`. The candidate is **not accepted**. Product code was not changed.
-
-Release-blocking findings:
-
-- The gold focus outline is 2.08:1 against the paper background, below the required 3:1 focus-indicator contrast.
-- The footer Terms link is about 35.8×44 px at 390 px on every SPA route (37.3×44 px on the standalone 404), below the required 44×44 touch target.
-- Public promises that sampling is repeatable and that every file is counted are absent from `.factory/claims.json` and lack tagged behavior tests.
-- The brief-required APFS, NTFS, exFAT, and valid common-codec integration matrix is not present; current scanner tests use the host filesystem and mostly malformed-codec fixtures.
-
-Low severity: a one-file result says “1 paths match across both folders.”
-
-Passing evidence remains substantial: all 21 declared claims pass after `npm ci`; `npm test` passes 14 unit and 25 browser tests; typecheck, lint, Rust tests/checks, both Clippy modes, `npm run build`, and `CI=true npm run tauri build -- --no-bundle` pass. The live deployment is byte-identical to candidate site output. Live axe has no serious/critical findings, Lighthouse is 98/100/100/100, offline reload works, the demo makes only same-origin requests, and license request 31 returns 429 with `Retry-After: 2` after an allowance of 30. The v0.1.6 Debian package installs, launches, opens the native sample, and matches its published SHA-256.
-
-Full evidence and remediation are in `.factory/verification-4.md`.
-
----
-
-# Previous builder handoff — polish round 1
-
-## Status
-
-All 25 findings in `.factory/review-1.md` are fixed. The repaired static site is live at <https://family-archive-check.sociobot.in>. The Tauri desktop-app and static deployment classes are unchanged. There are no known product gaps or deferred review items.
-
-## What changed
-
-- Reworked the first screen so its job, audience, one-click `?demo=1` action, and all privacy/offline/price facts fit at 390×844 and 1440×900.
-- Isolated the demo in its own in-memory state. Reset and Start for real cannot read or mutate real saved profiles.
-- Strengthened `.factory/claims.json` to 21 claims and made every test observable. Paid-license coverage now performs a 501-file native check and reuses a saved profile after reload.
-- Standardized “recovery file list” across the product and rewrote every jargon/copy finding.
-- Added complete route metadata, sample print sitemap entry, route focus/announcements, and a full-shell real 404.
-- Added executable shell and PowerShell installer checksum tests, including tamper rejection. Windows runs them in quality and release CI.
-- Preserved the art-deco archive-transit visual system while tightening its responsive layout.
-- Bumped the desktop app to 0.1.6 and kept npm, Cargo, Tauri, UI, and workflow versions aligned.
-
-The exact F-1-1 through F-1-25 mapping is in `.factory/polish-1.md`.
-
-## Verification evidence
+The release-blocking findings in independent report `.factory/verification-4.md` for candidate `6517f9915f7244731dc32dbe1a71dc96277a9b87` are repaired. The product remains a Tauri 2 desktop app with a static landing site.
 
 Repair commits:
 
-- `c0e0dc7a640158dddfddc127d6dd372941e1152a` — product, claims, copy, routing, layout, and tests.
-- `59b906b` — corrected the Windows tampered-fixture scope; Windows CI job `99138064392` passed.
-- `ecccc9d` — kept result entrance motion at full opacity so text contrast never dips during animation; the accessibility test passed three consecutive repeats and five cold live demo runs.
-- `d5c2cf33ec06808c2f78344d114c4c602d978fa9` — recorded the complete finding and verification evidence; [quality run 33267041290](https://github.com/B-Divyesh/sf-family-archive-check/actions/runs/33267041290) passed.
+- `bc818e01ed967fa62fc6bb1d9051ba806282b7dc` — product, accessibility, claims, valid-media fixtures, native regressions, and storage-matrix coverage.
+- `7f70a8e65c79dcb2e8d93545f7d07574a3640feb` — platform-specific matrix shells.
+- `6bb8757482d6ce15894097c7aa641588a67ff542` and `86ca8950cf30d0062740e554a695f63e0ec1e9ef` — real APFS/exFAT mounted-volume handling.
 
-Final clean-clone verification used `/tmp/fac-polish-final.Nlk5zB` at `d5c2cf33ec06808c2f78344d114c4c602d978fa9`:
+## Findings repaired
 
-- All 21 claim commands from `.factory/claims.json` passed individually.
-- `npm test`: 14 Vitest tests and 25 Playwright tests passed.
-- `npm run lint`: TypeScript and Rust formatting passed.
-- `cargo test --manifest-path src-tauri/Cargo.toml`: 4 passed.
-- Both clippy modes passed with `-D warnings`.
-- `npm run build`: produced `dist/site` and `dist/app`.
-- Initial JS: 38.69 KB raw / 13.80 KB gzip. CSS: 16.02 KB raw / 4.32 KB gzip. Mobile hero: 40.94 KB.
+- Focus indicators use `#003F40` on paper and a light raised-surface treatment on dark regions. The live `/check` button reports `rgb(0, 63, 64) solid 4px`; this is well above the 3:1 indicator requirement on the paper surface.
+- Footer links now have both `min-width` and `min-height` of 44 px. Live 390 px checks measured the Terms target at exactly `44×44` on the site and standalone 404.
+- Added `repeatable-sample` and `complete-file-count` claims with exact native regressions. The claim set now contains 24 independently executable observable claims.
+- Added original valid JPEG, PNG, HEIC, MP4, and MOV fixtures, plus native acceptance/hash coverage. GitHub CI scans them from real APFS, NTFS, and freshly formatted exFAT mounted volumes.
+- Corrected singular result copy to “1 path match across both folders,” with browser regression coverage.
 
-Accessibility, browser, privacy, and offline:
+## Verification
 
-- Playwright axe found zero serious or critical violations on `/`, `/?demo=1`, `/check`, `/privacy`, `/terms`, `/print/sample-family-archive`, and `/404.html` locally and live.
-- `/opt/fleet/lib/verify-url.sh` passed locally in 767 ms and live in 614 ms with no console errors. Evidence: `.factory/repair-artifacts/polish-1-verify-local/` and `polish-1-verify-live/`.
-- Offline reload, same-origin archive flow, no tracking, license request shape, demo isolation, keyboard routing/focus, 200% text, mobile overflow, touch targets, and real 404 status are covered by Playwright.
-- Lighthouse mobile local: performance 99, accessibility 100, best practices 100, SEO 100; LCP 1.6 s, CLS 0, TBT 110 ms.
-- Lighthouse mobile live: 100/100/100/100; LCP 1.2 s, CLS 0, TBT 40 ms. Reports are in `.factory/repair-artifacts/polish-1-lighthouse-*.json`.
+- Clean install: `npm ci` passed.
+- Unit and browser: `npm test` passed 14 Vitest and 28 Playwright tests. This includes desktop, 390 px mobile, keyboard, route focus, privacy, demo isolation, offline reload and stale-service-worker update coverage.
+- Type/lint: `npm run typecheck`, `npm run lint`, `cargo check`, and both Clippy modes with `-D warnings` passed.
+- Native: `cargo test --manifest-path src-tauri/Cargo.toml` passed 8 tests; `CI=true npm run tauri build -- --no-bundle` built and the binary stayed running in an Xvfb smoke test.
+- Production consumer build: `npm ci --omit=dev && npm run build` passed in CI and emitted `dist/site` and `dist/app`.
+- All 24 commands declared in `.factory/claims.json` were run individually and passed.
+- GitHub [quality run 33273115430](https://github.com/B-Divyesh/sf-family-archive-check/actions/runs/33273115430) passed clean install, browser tests, production build, installer helper, and the APFS/NTFS/exFAT storage-and-codec matrix.
+- Accessibility: Playwright Axe found zero serious/critical issues on all app and 404 routes. `/opt/fleet/lib/verify-url.sh` passed locally and live with no console errors. Local mobile Lighthouse: performance 99, accessibility 100, best practices 100, SEO 100; LCP 1.35 s, CLS 0, TBT 104 ms. The static initial JavaScript is 38.72 KB raw (13.81 KB gzip); CSS is 16.22 KB raw (4.36 KB gzip).
+- Live response policy: root is 200 with `no-cache`, HSTS, nosniff, strict-origin referrer policy, restrictive CSP, and camera/microphone/geolocation disabled; an unknown route is 404. One invalid license request returned the documented `{ valid: false, reason: "invalid" }` shape with `expires_at`. No sign-in or identity provider exists in this product, so identity verification is not applicable.
 
-Deployment:
+Evidence is committed under `.factory/repair-artifacts/verify-repair-4-local/`, `.factory/repair-artifacts/verify-repair-4-live/`, and `.factory/repair-artifacts/lighthouse-repair-4-local.json`.
 
-- Work-order command `npm ci && npm test && npm run build:site` passed immediately before deployment.
-- Final Azure Static Web Apps deployment `96dbf482-cb1c-44c4-914e-14b910e63b75` succeeded.
-- Cold live checks confirmed first-view facts, one-click demo, reset/exit, exact real-storage preservation, all route titles/canonicals, handoff content, 404 shell/status, legal links, revised copy, and no unexpected console errors.
-- Live screenshots: `.factory/repair-artifacts/polish-1-desktop-live.png`, `polish-1-mobile-live.png`, `polish-1-demo-live.png`, and `polish-1-not-found-live.png`.
+## Release and deployment
 
-Desktop release:
-
-- Tag `v0.1.6` points to final repair commit `43f750885b863fed2298e361af0c4c5190fb4811`.
-- [Release workflow 33267370733](https://github.com/B-Divyesh/sf-family-archive-check/actions/runs/33267370733) passed for Linux, Windows, Intel macOS, Apple Silicon macOS, and checksums.
-- The public [v0.1.6 release](https://github.com/B-Divyesh/sf-family-archive-check/releases/tag/v0.1.6) contains AppImage, DEB, RPM, MSI, EXE, both DMGs, both app archives, `SHA256SUMS`, and `latest.json`.
-- Downloaded `Family.Archive.Check_0.1.6_amd64.deb` passed `sha256sum -c` against the published checksum file. `latest.json` parsed successfully and every platform URL targets v0.1.6.
-- A cold Linux visit resolved “Download for Linux” to the real v0.1.6 AppImage with no console errors.
+- Tag `v0.1.7` points to `86ca8950cf30d0062740e554a695f63e0ec1e9ef`.
+- [Release workflow 33273321900](https://github.com/B-Divyesh/sf-family-archive-check/actions/runs/33273321900) passed for Linux, Windows, Intel macOS, Apple Silicon macOS, and checksums.
+- [Release v0.1.7](https://github.com/B-Divyesh/sf-family-archive-check/releases/tag/v0.1.7) publishes AppImage, DEB, RPM, MSI, EXE, both DMGs, both app archives, `SHA256SUMS`, and `latest.json`. A downloaded `Family.Archive.Check_0.1.7_amd64.deb` passed the published SHA-256 check; `latest.json` is valid and has all five platform URLs for v0.1.7.
+- `npm run build:site` was deployed to the existing Azure Static Web App production target (`sf-family-archive-check`). The live custom domain is [family-archive-check.sociobot.in](https://family-archive-check.sociobot.in); its client bundle SHA-256 matches the local production build. A fresh Linux browser context resolves “Download for Linux” to the real v0.1.7 AppImage without console errors.
 
 ## Run and verify
 
 ```sh
 npm ci
 npm test
+npm run typecheck
 npm run lint
+npm run build
 cargo test --manifest-path src-tauri/Cargo.toml
 cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
 cargo clippy --manifest-path src-tauri/Cargo.toml --features desktop --all-targets -- -D warnings
-npm run build
 ```
 
 ## Needs operator action
 
-The 0.1.6 installers are intentionally unsigned. Add `APPLE_CERTIFICATE` and `WINDOWS_CERT_PFX` to repository secrets when signing credentials are available. Until then, operating systems may warn before installation.
+The installers are intentionally unsigned. Add `APPLE_CERTIFICATE` and `WINDOWS_CERT_PFX` repository secrets when signing credentials are available; until then macOS and Windows may warn before installation.
