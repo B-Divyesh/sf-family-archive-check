@@ -73,6 +73,12 @@ jobs:
       - name: Install exFAT tools
         if: matrix.filesystem == 'exFAT'
         run: sudo apt-get update && sudo apt-get install -y exfatprogs
-      - name: Scan valid media on the mounted target filesystem
-        shell: ${{ matrix.filesystem == 'NTFS' && 'pwsh' || 'bash' }}
+      - name: Scan valid media on the mounted target filesystem (Unix)
+        if: matrix.filesystem != 'NTFS'
+        shell: bash
         run: ${{ matrix.command }}
+
+      - name: Scan valid media on the mounted target filesystem (Windows)
+        if: matrix.filesystem == 'NTFS'
+        shell: pwsh
+        run: ./tests/storage-volume.ps1
