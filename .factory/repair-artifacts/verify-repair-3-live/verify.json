@@ -1,0 +1,14 @@
+{
+  "url": "https://family-archive-check.sociobot.in",
+  "loadMs": 937,
+  "errors": [],
+  "a11y": {
+    "title": "Family Archive Check — Check photo backup copies",
+    "lang": "en",
+    "h1": 1,
+    "main": true,
+    "imgsMissingAlt": 0,
+    "buttonsUnlabeled": 0,
+    "textLength": 1970
+  }
+}
