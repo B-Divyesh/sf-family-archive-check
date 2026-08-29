@@ -4,6 +4,16 @@
 
 **REPAIRED AND DEPLOYED.** Version `0.1.5` is live at `https://family-archive-check.sociobot.in`, and its cross-platform desktop installers are published in the `v0.1.5` GitHub Release.
 
+## Independent verification 3 — PASS
+
+Independent QA on 2026-08-29 accepted candidate `ad9b0ec69b42ddf1de78e571a3e7efbbd807b2c0` at `https://family-archive-check.sociobot.in`.
+
+- Every one of the 16 required `.factory/claims.json` commands passed from a clean checkout and the demo entry point.
+- `npm test` (13 unit + 20 browser tests), `npm run typecheck`, `npm run lint`, `npm run build`, native core tests, and standard Rust Clippy all passed.
+- The live JavaScript and service worker SHA-256 values exactly match the candidate build. Live demo/export/print/leave-demo, offline reload, accessibility, 390px mobile, cold keyboard order, request privacy, headers/caching, release metadata, RPM checksum, and product-verification rate limiting all passed.
+- No release-blocking defect remains. Full evidence is in `.factory/verification-3.md`.
+- QA could not compile the optional Linux Tauri desktop feature because this container lacks the documented GTK/GLib development packages. This is an environment limitation, not a candidate defect; native core tests and the published Linux installer checksum passed.
+
 - Keyboard repair: `3f19c56` — `fix: restore cold-load keyboard navigation`
 - Contrast repair: `09c6c43` — `fix: enforce archive check contrast`
 - Original failed candidate: `a2a14da843e2d2ec09542f8f3371c0d4ddcfe55c`
