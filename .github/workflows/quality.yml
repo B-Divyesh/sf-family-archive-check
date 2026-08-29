@@ -50,3 +50,29 @@ jobs:
       - name: Execute valid and tampered checksum cases
         shell: pwsh
         run: ./tests/installers.ps1
+
+  storage-codec-matrix:
+    name: Storage and codec matrix (${{ matrix.filesystem }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-latest
+            filesystem: APFS
+            command: bash tests/storage-volume-macos.sh
+          - platform: windows-latest
+            filesystem: NTFS
+            command: ./tests/storage-volume.ps1
+          - platform: ubuntu-22.04
+            filesystem: exFAT
+            command: bash tests/storage-volume.sh exfat
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install exFAT tools
+        if: matrix.filesystem == 'exFAT'
+        run: sudo apt-get update && sudo apt-get install -y exfatprogs
+      - name: Scan valid media on the mounted target filesystem
+        shell: ${{ matrix.filesystem == 'NTFS' && 'pwsh' || 'bash' }}
+        run: ${{ matrix.command }}

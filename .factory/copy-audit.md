@@ -54,6 +54,11 @@ All remaining interface sentences contain 12 words or fewer. Errors say what hap
 
 The README was checked sentence by sentence. Its longest sentence has 21 words. The earlier jargon was replaced: “local-first,” “deterministic sample,” “mounted location,” “browser fallback,” factory “work order,” and visitor-facing SHA-256 language no longer appear in primary instructions.
 
+| Words | Sentence |
+|---:|---|
+| 12 | The scanner tests valid JPEG, PNG, HEIC, MP4, and MOV fixtures. |
+| 14 | CI also scans those fixtures on APFS, NTFS, and exFAT volumes. |
+
 ## Terminology
 
 | Concept | One term used |

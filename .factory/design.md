@@ -9,8 +9,9 @@ The interface borrows the confidence and geometry of a 1930s art-deco transit po
 - `ink` `#172A2A`: near-black green for body text and deep panels.
 - `paper` `#F4EBD8`: warm archival paper for the main background.
 - `paper-raised` `#FFF9EA`: readable raised surfaces.
-- `teal` `#0E5D5E`: primary controls and route lines.
-- `gold` `#D49B2A`: ticket accents and focus rings.
+- `teal` `#003F40`: primary controls, route lines, and focus rings on paper and light surfaces.
+- `gold` `#D49B2A`: ticket accents and route markers.
+- Pale paper focus rings are used on ink panels. This two-surface treatment keeps every keyboard indicator above 3:1 contrast.
 - `coral` `#842D27`: warnings and unmatched items.
 - `green` `#26734D`: complete and readable states.
 - `muted` `#414A46`: secondary text, checked at 4.5:1 on paper.

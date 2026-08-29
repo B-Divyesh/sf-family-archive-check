@@ -401,6 +401,65 @@ mod tests {
     }
 
     #[test]
+    fn claim_repeatable_sample_selects_the_same_paths_on_every_scan() {
+        let directory = tempfile::tempdir().unwrap();
+        for index in 0..64 {
+            image::DynamicImage::new_rgb8(1, 1)
+                .save(directory.path().join(format!("photo-{index:02}.png")))
+                .unwrap();
+        }
+
+        let first = scan(directory.path(), "Main archive".into()).unwrap();
+        let second = scan(directory.path(), "Main archive".into()).unwrap();
+        let sampled = |result: &TargetScan| {
+            result
+                .files
+                .iter()
+                .filter(|file| file.sampled)
+                .map(|file| file.relative_path.clone())
+                .collect::<Vec<_>>()
+        };
+
+        assert_eq!(first.files.len(), 64);
+        assert_eq!(sampled(&first).len(), 48);
+        assert_eq!(sampled(&first), sampled(&second));
+    }
+
+    #[test]
+    fn claim_complete_file_count_enumerates_sampled_and_unsampled_files() {
+        let directory = tempfile::tempdir().unwrap();
+        let dated = directory.path().join("2008");
+        fs::create_dir(&dated).unwrap();
+        let mut expected = HashSet::new();
+
+        for index in 0..52 {
+            let name = format!("2008/photo-{index:02}.png");
+            image::DynamicImage::new_rgb8(1, 1)
+                .save(directory.path().join(&name))
+                .unwrap();
+            expected.insert(name);
+        }
+        let notes = directory.path().join("notes");
+        fs::create_dir(&notes).unwrap();
+        for index in 0..21 {
+            let name = format!("notes/note-{index:02}.txt");
+            fs::write(directory.path().join(&name), "archive note").unwrap();
+            expected.insert(name);
+        }
+
+        let result = scan(directory.path(), "Main archive".into()).unwrap();
+        let actual = result
+            .files
+            .iter()
+            .map(|file| file.relative_path.clone())
+            .collect::<HashSet<_>>();
+
+        assert_eq!(result.files.len(), expected.len());
+        assert_eq!(actual, expected);
+        assert_eq!(result.files.iter().filter(|file| file.sampled).count(), 48);
+    }
+
+    #[test]
     fn claim_media_readable_rejects_empty_and_truncated_images() {
         let directory = tempfile::tempdir().unwrap();
         for extension in [
@@ -431,6 +490,112 @@ mod tests {
         }
         assert!(!readable("truncated.png"));
         assert!(readable("valid.png"));
+    }
+
+    #[test]
+    fn claim_common_media_codecs_accepts_shipped_valid_fixtures() {
+        let fixture_directory = Path::new(env!("CARGO_MANIFEST_DIR")).join("../tests/fixtures");
+        let expected = [
+            "valid.jpg",
+            "valid.png",
+            "valid.heic",
+            "valid.mp4",
+            "valid.mov",
+        ];
+        let result = scan(&fixture_directory, "Codec fixtures".into()).unwrap();
+
+        assert_eq!(result.files.len(), expected.len());
+        for name in expected {
+            let record = result
+                .files
+                .iter()
+                .find(|file| file.relative_path == name)
+                .unwrap_or_else(|| panic!("missing fixture {name}"));
+            assert!(record.sampled, "{name} was not sampled");
+            assert!(record.readable, "{name} was not accepted as readable");
+            assert!(record.hash.is_some(), "{name} was not hashed");
+        }
+    }
+
+    #[test]
+    fn mounted_volume_fixture_scans_the_expected_real_filesystem() {
+        let Ok(root) = std::env::var("FAC_VOLUME_FIXTURE_ROOT") else {
+            return;
+        };
+        let expected_filesystem = std::env::var("FAC_EXPECTED_FILESYSTEM")
+            .expect("mounted-volume runs must name the expected filesystem")
+            .to_ascii_lowercase();
+        let fixture_root = PathBuf::from(root);
+        let observed_filesystem = mounted_filesystem_type(&fixture_root).to_ascii_lowercase();
+        assert!(
+            observed_filesystem.contains(&expected_filesystem),
+            "expected {expected_filesystem} filesystem, observed {observed_filesystem}"
+        );
+
+        let result = scan(&fixture_root, "Mounted volume fixture".into()).unwrap();
+        for name in [
+            "valid.jpg",
+            "valid.png",
+            "valid.heic",
+            "valid.mp4",
+            "valid.mov",
+        ] {
+            let record = result
+                .files
+                .iter()
+                .find(|file| file.relative_path == name)
+                .unwrap_or_else(|| panic!("mounted volume omitted {name}"));
+            assert!(
+                record.readable,
+                "mounted {expected_filesystem} fixture {name} was unreadable"
+            );
+            assert!(
+                record.hash.is_some(),
+                "mounted {expected_filesystem} fixture {name} was not hashed"
+            );
+        }
+    }
+
+    #[cfg(target_os = "linux")]
+    fn mounted_filesystem_type(path: &Path) -> String {
+        std::process::Command::new("findmnt")
+            .args(["--noheadings", "--output", "FSTYPE", "--target"])
+            .arg(path)
+            .output()
+            .expect("findmnt must be available in the Linux storage matrix")
+            .stdout
+            .iter()
+            .map(|byte| char::from(*byte))
+            .collect()
+    }
+
+    #[cfg(target_os = "macos")]
+    fn mounted_filesystem_type(path: &Path) -> String {
+        std::process::Command::new("diskutil")
+            .arg("info")
+            .arg(path)
+            .output()
+            .expect("diskutil must be available in the macOS storage matrix")
+            .stdout
+            .iter()
+            .map(|byte| char::from(*byte))
+            .collect()
+    }
+
+    #[cfg(target_os = "windows")]
+    fn mounted_filesystem_type(path: &Path) -> String {
+        let command = format!(
+            "(Get-Volume -FilePath '{}').FileSystem",
+            path.to_string_lossy().replace('\'', "''")
+        );
+        std::process::Command::new("powershell")
+            .args(["-NoProfile", "-Command", &command])
+            .output()
+            .expect("PowerShell must be available in the Windows storage matrix")
+            .stdout
+            .iter()
+            .map(|byte| char::from(*byte))
+            .collect()
     }
 
     #[test]

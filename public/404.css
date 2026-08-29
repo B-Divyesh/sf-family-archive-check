@@ -16,9 +16,10 @@ h1 { max-width: 10ch; margin: 0 0 24px; font: 800 clamp(48px,9vw,96px)/.95 "Aria
 .button { display: inline-flex; min-height: 44px; align-items: center; margin-top: 16px; padding: 10px 20px; border: 2px solid var(--ink); background: var(--teal); color: white; box-shadow: 5px 5px var(--ink); font: 800 16px "Arial Narrow",Arial,sans-serif; text-transform: uppercase; text-decoration: none; }
 .site-footer { display: grid; grid-template-columns: 1fr auto; gap: 12px 32px; padding: 40px max(16px,calc((100vw - 1180px)/2)); background: var(--ink); color: #f7f0df; font-size: 15px; }
 .site-footer p { margin: 0; }
-.site-footer a { min-height: 44px; display: inline-flex; align-items: center; color: #f7d477; }
+.site-footer a { min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; color: #f7d477; }
 .site-footer p:last-child { grid-column: 1/-1; color: #d2d9d2; }
 .sr-only { position: absolute!important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
-:focus-visible { outline: 4px solid var(--gold); outline-offset: 3px; }
+:focus-visible { outline: 4px solid var(--teal); outline-offset: 3px; }
+.site-header :focus-visible,.site-footer :focus-visible { outline-color: var(--raised); }
 @media (max-width:620px) { .site-header { align-items: flex-start; flex-direction: column; gap: 8px; } .site-header nav { width: 100%; justify-content: space-between; } .site-header nav a { min-height: 44px; display: grid; align-items: center; } .site-footer { grid-template-columns: 1fr; } .site-footer p:last-child { grid-column: auto; } }
 @media (prefers-reduced-motion:reduce) { *,*::before,*::after { transition-duration: .01ms!important; } }

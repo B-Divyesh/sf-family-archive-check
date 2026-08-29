@@ -52,6 +52,8 @@ npm run lint
 cargo test --manifest-path src-tauri/Cargo.toml
 ```
 
+The scanner tests valid JPEG, PNG, HEIC, MP4, and MOV fixtures. CI also scans those fixtures on APFS, NTFS, and exFAT volumes; see `.factory/storage-matrix.md`.
+
 Build the deployable static site:
 
 ```sh

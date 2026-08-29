@@ -49,6 +49,27 @@
     "sandbox": "in-memory empty and truncated JPEG and PNG bytes; assert each is rejected"
   },
   {
+    "id": "repeatable-sample",
+    "claim": "The same archive selects the same repeatable media sample on each check.",
+    "where": "README and folder-check status",
+    "test": "cargo test --manifest-path src-tauri/Cargo.toml claim_repeatable_sample",
+    "sandbox": "temporary archive with more than 48 valid media files; scan it twice and assert the exact sampled path set is identical"
+  },
+  {
+    "id": "complete-file-count",
+    "claim": "The app counts every file in each selected folder.",
+    "where": "landing Read and compare step",
+    "test": "cargo test --manifest-path src-tauri/Cargo.toml claim_complete_file_count",
+    "sandbox": "temporary nested archive with sampled media and unsampled non-media files; assert every created path appears in the scan"
+  },
+  {
+    "id": "common-media-codecs",
+    "claim": "Valid JPEG, PNG, HEIC, MP4, and MOV fixtures are reported readable.",
+    "where": "scanner acceptance evidence",
+    "test": "cargo test --manifest-path src-tauri/Cargo.toml claim_common_media_codecs",
+    "sandbox": "shipped, independently parsed 2×2 image and 0.2-second video fixtures; scan and assert every sampled file is readable and hashed"
+  },
+  {
     "id": "independent-folders",
     "claim": "The same folder or storage device cannot pass as an independent copy.",
     "where": "folder check",

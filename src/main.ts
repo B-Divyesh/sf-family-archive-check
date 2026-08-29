@@ -94,7 +94,7 @@ function footer() {
   return `<footer class="site-footer">
     <p>Check family photo copies before handoff.</p>
     <nav aria-label="Footer navigation"><a href="/privacy" data-link>Privacy</a><a href="/terms" data-link>Terms</a><a href="https://sociobot.in" rel="external">Built by Param Factory <span class="sr-only">(external site)</span></a></nav>
-    <p>Version 0.1.6 · Generated art disclosed in the design notes.</p>
+    <p>Version 0.1.7 · Generated art disclosed in the design notes.</p>
   </footer>`;
 }
 
@@ -200,7 +200,7 @@ function resultView(result: CheckResult, demo: boolean) {
   const issues = [...result.missingFromBackup, ...result.changed, ...result.unreadable];
   const storageUnverified = !demo && !isTauri && !result.primary.storageId && result.verdict === 'ready';
   return `<section class="result-panel">
-    <div class="verdict ${storageUnverified ? 'attention' : result.verdict}" role="status"><span aria-hidden="true">${result.verdict === 'ready' && !storageUnverified ? '✓' : '!'}</span><div><strong>${result.verdict === 'ready' ? (storageUnverified ? 'Confirm separate drives' : 'Ready for handoff') : `${issues.length} item${issues.length === 1 ? ' needs' : 's need'} attention`}</strong><p>${result.matched} paths match across both folders.</p>${storageUnverified ? '<p>The browser cannot identify storage devices. Repeat this check in the desktop app before handoff.</p>' : ''}</div></div>
+    <div class="verdict ${storageUnverified ? 'attention' : result.verdict}" role="status"><span aria-hidden="true">${result.verdict === 'ready' && !storageUnverified ? '✓' : '!'}</span><div><strong>${result.verdict === 'ready' ? (storageUnverified ? 'Confirm separate drives' : 'Ready for handoff') : `${issues.length} item${issues.length === 1 ? ' needs' : 's need'} attention`}</strong><p>${result.matched} path${result.matched === 1 ? '' : 's'} match across both folders.</p>${storageUnverified ? '<p>The browser cannot identify storage devices. Repeat this check in the desktop app before handoff.</p>' : ''}</div></div>
     <div class="archive-comparison">
       <article><p class="eyebrow">Main archive</p><h2>${main.files} files</h2><dl><div><dt>Photos</dt><dd>${main.photo}</dd></div><div><dt>Videos</dt><dd>${main.video}</dd></div><div><dt>Size</dt><dd>${formatBytes(main.bytes)}</dd></div><div><dt>Location</dt><dd>${escapeHtml(result.primary.path)}</dd></div></dl></article>
       <div class="comparison-line" aria-hidden="true"><span></span></div>

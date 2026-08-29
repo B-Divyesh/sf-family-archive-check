@@ -4,6 +4,16 @@ import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+function contrastRatio(foreground: string, background: string) {
+  const luminance = (value: string) => {
+    const channels = value.match(/\d+(?:\.\d+)?/g)!.slice(0, 3).map(Number).map((channel) => channel / 255);
+    const linear = channels.map((channel) => channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4);
+    return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2];
+  };
+  const [lighter, darker] = [luminance(foreground), luminance(background)].sort((left, right) => right - left);
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
 test('@claim:demo-ready opens a finished sample check in one click', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByText('The main archive has six items. The independent copy has five.')).toBeVisible();
@@ -82,11 +92,11 @@ test('service worker replaces stale pages online and keeps the update offline', 
 
   await page.reload();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Check every family photo and video has a copy');
-  await expect(page.getByText('Version 0.1.6')).toBeVisible();
+  await expect(page.getByText('Version 0.1.7')).toBeVisible();
 
   await context.setOffline(true);
   await page.reload();
-  await expect(page.getByText('Version 0.1.6')).toBeVisible();
+  await expect(page.getByText('Version 0.1.7')).toBeVisible();
 });
 
 test('@claim:paid-license unlocks a 501-file check and a reusable saved profile', async ({ page }) => {
@@ -223,6 +233,26 @@ test('the same selected folder cannot be checked as its own copy', async ({ page
   }
 });
 
+test('a one-file match uses singular result copy', async ({ page }) => {
+  const fixture = await mkdtemp(join(tmpdir(), 'archive-singular-result-'));
+  const main = join(fixture, 'main-archive');
+  const copy = join(fixture, 'independent-copy');
+  await mkdir(main);
+  await mkdir(copy);
+  await writeFile(join(main, 'family-note.txt'), 'same note');
+  await writeFile(join(copy, 'family-note.txt'), 'same note');
+  try {
+    await page.goto('/check');
+    await page.locator('#primary-input').setInputFiles(main);
+    await page.locator('#backup-input').setInputFiles(copy);
+    await page.getByRole('button', { name: 'Check both folders' }).click();
+    await expect(page.getByText('1 path match across both folders.')).toBeVisible();
+    await expect(page.getByText('1 paths match across both folders.')).toHaveCount(0);
+  } finally {
+    await rm(fixture, { recursive: true, force: true });
+  }
+});
+
 test('@claim:demo-isolation demo data never appears in a real check', async ({ page }) => {
   await page.goto('/check');
   const before = await page.evaluate(() => {
@@ -313,6 +343,26 @@ test('keyboard navigation skips hidden file inputs and shows focus', async ({ pa
   expect(await picker.evaluate((element) => getComputedStyle(element).outlineStyle)).not.toBe('none');
 });
 
+test('focus indicators have at least 3 to 1 contrast on paper and ink surfaces', async ({ page }) => {
+  await page.goto('/privacy');
+  const paperLink = page.getByRole('link', { name: 'Return to the home page' });
+  await paperLink.focus();
+  const paperOutline = await paperLink.evaluate((element) => getComputedStyle(element).outlineColor);
+  expect(contrastRatio(paperOutline, 'rgb(244, 235, 216)')).toBeGreaterThanOrEqual(3);
+
+  await page.goto('/');
+  const inkLink = page.getByRole('link', { name: 'Demo', exact: true });
+  await inkLink.focus();
+  const inkOutline = await inkLink.evaluate((element) => getComputedStyle(element).outlineColor);
+  expect(contrastRatio(inkOutline, 'rgb(23, 42, 42)')).toBeGreaterThanOrEqual(3);
+
+  await page.goto('/404.html');
+  const standaloneInkLink = page.getByRole('link', { name: 'Demo', exact: true });
+  await standaloneInkLink.focus();
+  const standaloneOutline = await standaloneInkLink.evaluate((element) => getComputedStyle(element).outlineColor);
+  expect(contrastRatio(standaloneOutline, 'rgb(23, 42, 42)')).toBeGreaterThanOrEqual(3);
+});
+
 test('cold-load keyboard order starts with the skip link and route changes announce their heading', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('body')).toBeFocused();
@@ -368,13 +418,23 @@ test('mobile layout keeps actions inside the viewport', async ({ page }) => {
   const priceFact = await page.locator('.plain-facts').getByText('Household license: $29 once.').boundingBox();
   expect(priceFact).not.toBeNull();
   expect(priceFact!.y + priceFact!.height).toBeLessThanOrEqual(844);
-  for (const link of await page.locator('.site-footer a').all()) {
-    expect((await link.boundingBox())!.height).toBeGreaterThanOrEqual(44);
-  }
   await page.goto('/check');
   expect((await page.getByRole('link', { name: /Buy household license/ }).boundingBox())!.height).toBeGreaterThanOrEqual(44);
   await page.goto('/privacy');
   expect((await page.getByRole('link', { name: 'Return to the home page' }).boundingBox())!.height).toBeGreaterThanOrEqual(44);
+});
+
+test('footer links are at least 44 by 44 CSS pixels on every public route', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  for (const route of ['/', '/demo', '/check', '/privacy', '/terms', '/print/sample-family-archive', '/missing-stop', '/404.html']) {
+    await page.goto(route);
+    for (const link of await page.locator('.site-footer a').all()) {
+      const box = await link.boundingBox();
+      expect(box, `${route} footer link has no box`).not.toBeNull();
+      expect(box!.width, `${route} footer link is too narrow`).toBeGreaterThanOrEqual(44);
+      expect(box!.height, `${route} footer link is too short`).toBeGreaterThanOrEqual(44);
+    }
+  }
 });
 
 test('every public route publishes its own title, description, canonical, and social metadata', async ({ page }) => {
