@@ -4,13 +4,13 @@
     "claim": "The sample opens as a finished two-folder check.",
     "where": "landing primary action and demo",
     "test": "npm run test:e2e -- --grep @claim:demo-ready",
-    "sandbox": "fresh browser context at /demo; assert the named missing video and demo banner"
+    "sandbox": "fresh browser context at /; click the sample action; assert ?demo=1, 6/5 counts, named missing video, and demo banner"
   },
   {
-    "id": "manifest-export",
-    "claim": "Exports a portable recovery manifest.",
+    "id": "file-list-export",
+    "claim": "Exports a recovery file list (JSON).",
     "where": "landing and result action",
-    "test": "npm run test:e2e -- --grep @claim:manifest-export",
+    "test": "npm run test:e2e -- --grep @claim:file-list-export",
     "sandbox": "demo data; download JSON and assert the check id and missing path"
   },
   {
@@ -81,7 +81,7 @@
     "claim": "A $29 household license enables unlimited checks and saved profiles.",
     "where": "paid tier",
     "test": "npm run test:e2e -- --grep @claim:paid-license",
-    "sandbox": "fresh browser context with a recorded valid verification response; assert checkout URL, exact price, and active benefits"
+    "sandbox": "native IPC fixture with 501 matching files; assert unlicensed rejection, recorded valid verification, completed check, saved profile, reload, and profile reuse"
   },
   {
     "id": "platform-download",
@@ -95,7 +95,7 @@
     "claim": "Demo data stays separate from real folder data.",
     "where": "demo banner, demo guide, and README",
     "test": "npm run test:e2e -- --grep @claim:demo-isolation",
-    "sandbox": "fresh browser context; leave the sample through Check folders and assert the sample entry is absent"
+    "sandbox": "seed an exact real profile and sentinel; enter ?demo=1, export, reset, Start for real; assert real storage is byte-for-byte unchanged and sample data is absent"
   },
   {
     "id": "license-privacy",
@@ -109,6 +109,41 @@
     "claim": "Each command-line helper verifies SHA-256 before saving an installer to Downloads.",
     "where": "README",
     "test": "npm run test:unit -- --testNamePattern @claim:installer-checksum",
-    "sandbox": "inspect both shipped helpers; assert checksum verification precedes the move to Downloads"
+    "sandbox": "execute valid and tampered downloads for shell; execute valid and tampered downloads under PowerShell on Windows CI; assert only verified bytes reach Downloads"
+  },
+  {
+    "id": "payment-policy",
+    "claim": "Dodo Payments takes the payment and handles order-related questions and returns.",
+    "where": "purchase section and terms",
+    "test": "npm run test:e2e -- --grep @claim:payment-policy",
+    "sandbox": "request the Sociobot checkout; assert its live redirect reaches Dodo and its policy identifies Dodo as Merchant of Record handling inquiries and returns"
+  },
+  {
+    "id": "free-exports",
+    "claim": "Recovery exports are available without a license.",
+    "where": "README and demo result actions",
+    "test": "npm run test:e2e -- --grep @claim:free-exports",
+    "sandbox": "fresh unlicensed demo context; download and parse the recovery file list, then open the printable handoff sheet"
+  },
+  {
+    "id": "accessibility-not-gated",
+    "claim": "Accessibility support is available without a license.",
+    "where": "README",
+    "test": "npm run test:e2e -- --grep @claim:accessibility-not-gated",
+    "sandbox": "fresh unlicensed check context; use keyboard focus and assert no serious or critical axe violations"
+  },
+  {
+    "id": "no-face-recognition",
+    "claim": "The app does not identify people in media.",
+    "where": "landing privacy section and README",
+    "test": "npm run test:unit -- --testNamePattern @claim:no-face-recognition",
+    "sandbox": "inspect dependencies and source for face-recognition or camera code; assert camera permission is disabled"
+  },
+  {
+    "id": "no-tracking",
+    "claim": "The website uses no ad trackers or third-party fonts.",
+    "where": "privacy page",
+    "test": "npm run test:e2e -- --grep @claim:no-tracking",
+    "sandbox": "fresh home-page context; record requests and cookies; allow only the documented GitHub release request; assert no external font or script elements"
   }
 ]

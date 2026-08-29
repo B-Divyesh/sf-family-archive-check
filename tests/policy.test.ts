@@ -31,9 +31,8 @@ describe('release policies', () => {
     const powershell = readFileSync('public/install.ps1', 'utf8');
     const sandbox = mkdtempSync(join(tmpdir(), 'archive-installer-'));
     const bin = join(sandbox, 'bin');
-    const home = join(sandbox, 'home');
+    const downloads = join(sandbox, 'downloads');
     mkdirSync(bin);
-    mkdirSync(home);
     const digest = createHash('sha256').update('installer-bytes').digest('hex');
     writeFileSync(join(bin, 'uname'), '#!/bin/sh\n[ "$1" = "-s" ] && echo Linux || echo x86_64\n');
     writeFileSync(join(bin, 'curl'), `#!/bin/sh
@@ -48,7 +47,7 @@ while [ "$#" -gt 0 ]; do
 done
 case "$url" in
   *api.github.com*) printf '%s\\n' '{"assets":[' ' {"browser_download_url": "https://example.test/Family.AppImage"},' ' {"browser_download_url": "https://example.test/SHA256SUMS"}' ']}' > "$out" ;;
-  *Family.AppImage) printf 'installer-bytes' > "$out" ;;
+  *Family.AppImage) if [ "\${FAC_TAMPER:-}" = "1" ]; then printf 'tampered-bytes' > "$out"; else printf 'installer-bytes' > "$out"; fi ;;
   *SHA256SUMS) printf '${digest}  Family.AppImage\\n' > "$out" ;;
   *) exit 1 ;;
 esac
@@ -56,10 +55,16 @@ esac
     chmodSync(join(bin, 'uname'), 0o755);
     chmodSync(join(bin, 'curl'), 0o755);
     try {
-      const result = spawnSync('sh', ['public/install.sh'], { encoding: 'utf8', env: { ...process.env, HOME: home, PATH: `${bin}:${process.env.PATH}` } });
+      const testEnvironment = { ...process.env, FAC_DOWNLOADS_DIR: downloads, PATH: `${bin}:${process.env.PATH}` };
+      const result = spawnSync('sh', ['public/install.sh'], { encoding: 'utf8', env: testEnvironment });
       expect(result.status, result.stderr).toBe(0);
-      expect(readFileSync(join(home, 'Downloads', 'Family.AppImage'), 'utf8')).toBe('installer-bytes');
+      expect(readFileSync(join(downloads, 'Family.AppImage'), 'utf8')).toBe('installer-bytes');
       expect(result.stdout).toContain('Verified and saved Family.AppImage');
+      rmSync(join(downloads, 'Family.AppImage'));
+      const tampered = spawnSync('sh', ['public/install.sh'], { encoding: 'utf8', env: { ...testEnvironment, FAC_TAMPER: '1' } });
+      expect(tampered.status).not.toBe(0);
+      expect(`${tampered.stdout}\n${tampered.stderr}`).toContain('FAILED');
+      expect(existsSync(join(downloads, 'Family.AppImage'))).toBe(false);
     } finally {
       rmSync(sandbox, { recursive: true, force: true });
     }
@@ -68,6 +73,20 @@ esac
     expect(powershell).toMatch(/if \(\$expected -ne \$actual\).*throw/);
     expect(powershell.indexOf('if ($expected -ne $actual)')).toBeLessThan(powershell.indexOf('Move-Item'));
     expect(existsSync('public/install.ps1')).toBe(true);
+    const windowsTest = readFileSync('tests/installers.ps1', 'utf8');
+    const qualityWorkflow = readFileSync('.github/workflows/quality.yml', 'utf8');
+    expect(windowsTest).toContain('Tampered installer was not rejected.');
+    expect(windowsTest).toContain('Valid installer was not saved.');
+    expect(qualityWorkflow).toContain('run: ./tests/installers.ps1');
+  });
+
+  it('@claim:no-face-recognition ships no face-identification code or network permission', () => {
+    const packageJson = readFileSync('package.json', 'utf8').toLowerCase();
+    const source = readFileSync('src/main.ts', 'utf8').toLowerCase() + readFileSync('src/core.ts', 'utf8').toLowerCase();
+    const policy = readFileSync('public/staticwebapp.config.json', 'utf8');
+    expect(packageJson).not.toMatch(/face-api|tensorflow|mediapipe|opencv/);
+    expect(source).not.toMatch(/facedetect|facialrecognition|getusermedia/);
+    expect(JSON.parse(policy).globalHeaders['Permissions-Policy']).toContain('camera=()');
   });
 
   it('serves app routes explicitly, unknown routes as 404, and immutable assets', () => {

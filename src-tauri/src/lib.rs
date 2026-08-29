@@ -347,7 +347,8 @@ fn write_manifest(path: String, contents: String) -> Result<(), String> {
     if !path.to_ascii_lowercase().ends_with(".json") {
         return Err("Choose a file name ending in .json.".into());
     }
-    fs::write(path, contents).map_err(|error| format!("The manifest could not be saved: {error}"))
+    fs::write(path, contents)
+        .map_err(|error| format!("The recovery file list could not be saved: {error}"))
 }
 
 #[cfg(feature = "desktop")]

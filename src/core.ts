@@ -163,7 +163,7 @@ export function formatBytes(bytes: number) {
 }
 
 export function exportName(result: CheckResult) {
-  return `family-archive-manifest-${result.checkedAt.slice(0, 10)}.json`;
+  return `family-archive-file-list-${result.checkedAt.slice(0, 10)}.json`;
 }
 
 function sampleScore(path: string) {

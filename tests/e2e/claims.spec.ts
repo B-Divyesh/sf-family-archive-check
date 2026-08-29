@@ -4,19 +4,24 @@ import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-test('@claim:demo-ready opens a finished sample check', async ({ page }) => {
-  await page.goto('/demo');
+test('@claim:demo-ready opens a finished sample check in one click', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.getByText('The main archive has six items. The independent copy has five.')).toBeVisible();
+  await page.getByRole('link', { name: 'Try it with sample data' }).click();
+  await expect(page).toHaveURL(/\?demo=1$/);
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('One archive item needs attention');
   await expect(page.getByText('2024/01-New-year/fireworks.mp4')).toBeVisible();
+  await expect(page.getByRole('heading', { name: '6 files' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '5 files' })).toBeVisible();
   await expect(page.getByText('Demo — sample data, nothing is saved')).toBeVisible();
 });
 
-test('@claim:manifest-export exports the recovery manifest', async ({ page }) => {
+test('@claim:file-list-export exports the recovery file list', async ({ page }) => {
   await page.goto('/demo');
   const download = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Export recovery manifest' }).click();
+  await page.getByRole('button', { name: 'Export recovery file list' }).click();
   const result = await download;
-  expect(result.suggestedFilename()).toBe('family-archive-manifest-2026-08-28.json');
+  expect(result.suggestedFilename()).toBe('family-archive-file-list-2026-08-28.json');
   const stream = await result.createReadStream();
   let content = '';
   for await (const chunk of stream!) content += chunk.toString();
@@ -40,12 +45,16 @@ test('@claim:local-only sends no demo data off site', async ({ page }) => {
   try {
     await page.goto('/demo');
     await page.getByRole('button', { name: 'Reset demo' }).click();
-    await page.getByRole('button', { name: 'Export recovery manifest' }).click();
+    const demoDownload = page.waitForEvent('download');
+    await page.getByRole('button', { name: 'Export recovery file list' }).click();
+    await demoDownload;
     await page.goto('/check');
     await page.locator('#primary-input').setInputFiles(main);
     await page.locator('#backup-input').setInputFiles(copy);
     await page.getByRole('button', { name: 'Check both folders' }).click();
-    await page.getByRole('button', { name: 'Export recovery manifest' }).click();
+    const realDownload = page.waitForEvent('download');
+    await page.getByRole('button', { name: 'Export recovery file list' }).click();
+    await realDownload;
     expect(outsideRequests).toEqual([]);
   } finally {
     await rm(fixture, { recursive: true, force: true });
@@ -72,15 +81,39 @@ test('service worker replaces stale pages online and keeps the update offline', 
   });
 
   await page.reload();
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Check every family photo has a copy');
-  await expect(page.getByText('Version 0.1.5')).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Check every family photo and video has a copy');
+  await expect(page.getByText('Version 0.1.6')).toBeVisible();
 
   await context.setOffline(true);
   await page.reload();
-  await expect(page.getByText('Version 0.1.5')).toBeVisible();
+  await expect(page.getByText('Version 0.1.6')).toBeVisible();
 });
 
-test('@claim:paid-license links to the $29 household checkout', async ({ page }) => {
+test('@claim:paid-license unlocks a 501-file check and a reusable saved profile', async ({ page }) => {
+  const files = Array.from({ length: 501 }, (_, index) => ({
+    relativePath: `archive/file-${String(index).padStart(3, '0')}.txt`,
+    size: 12,
+    modified: 1_788_000_000_000 + index,
+    kind: 'other',
+    readable: true,
+    sampled: false
+  }));
+  const scan = (path: string, label: string, storageId: string) => ({
+    path, label, storageId, fileSystem: 'Test volume', files,
+    startedAt: '2026-08-29T10:00:00.000Z', completedAt: '2026-08-29T10:00:01.000Z'
+  });
+  await page.addInitScript(({ main, backup }) => {
+    let folderChoice = 0;
+    Object.assign(window, {
+      __TAURI_INTERNALS__: {
+        invoke: async (command: string, args: { path?: string }) => {
+          if (command === 'plugin:dialog|open') return folderChoice++ % 2 === 0 ? main.path : backup.path;
+          if (command === 'scan_folder') return args.path === main.path ? main : backup;
+          throw new Error(`Unexpected native command: ${command}`);
+        }
+      }
+    });
+  }, { main: scan('/Volumes/Family Archive', 'Main archive', 'device:main'), backup: scan('/Volumes/Blue Backup', 'Independent copy', 'device:backup') });
   await page.route('https://api.sociobot.in/api/v1/products/family-archive-check/verify?license=test-license', (route) => route.fulfill({
     status: 200,
     contentType: 'application/json',
@@ -91,10 +124,34 @@ test('@claim:paid-license links to the $29 household checkout', async ({ page })
   await expect(link).toHaveAttribute('href', 'https://api.sociobot.in/api/v1/products/family-archive-check/checkout');
   await expect(page.getByText('Pay $29 once for unlimited checks and saved folder profiles.')).toBeVisible();
   await page.goto('/check');
+  await page.getByRole('button', { name: 'Choose and read main folder' }).click();
+  await page.getByRole('button', { name: 'Choose and read backup folder' }).click();
+  let limitMessage = '';
+  page.once('dialog', async (dialog) => { limitMessage = dialog.message(); await dialog.dismiss(); });
+  await page.getByRole('button', { name: 'Check both folders' }).click();
+  expect(limitMessage).toContain('more than 500 files');
   await page.getByLabel('Or paste a license token').fill('test-license');
   await page.getByRole('button', { name: 'Verify license' }).click();
   await expect(page.getByText('License active', { exact: true })).toBeVisible();
   await expect(page.getByText('Unlimited checks and saved folder profiles are available.')).toBeVisible();
+  await page.getByRole('button', { name: 'Check both folders' }).click();
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Both archive copies are ready');
+  await expect(page.getByRole('heading', { name: '501 files' })).toHaveCount(2);
+  page.once('dialog', (dialog) => dialog.dismiss());
+  await page.getByRole('button', { name: 'Save folder profile' }).click();
+  await page.reload();
+  await page.getByRole('button', { name: 'Read this profile' }).click();
+  await expect(page.locator('#primary-path')).toHaveText('/Volumes/Family Archive');
+  await expect(page.locator('#backup-path')).toHaveText('/Volumes/Blue Backup');
+  await expect(page.getByRole('button', { name: 'Check both folders' })).toBeEnabled();
+});
+
+test('@claim:payment-policy checkout identifies Dodo as payment and returns handler', async ({ request }) => {
+  const response = await request.get('https://api.sociobot.in/api/v1/products/family-archive-check/checkout');
+  expect(response.url()).toMatch(/^https:\/\/checkout\.dodopayments\.com\/session\//);
+  const body = await response.text();
+  expect(body).toContain('Merchant of Record, dodopayments.com');
+  expect(body).toContain('handles order-related inquiries and returns');
 });
 
 test('@claim:license-privacy sends only the pasted token to Sociobot', async ({ page }) => {
@@ -113,6 +170,19 @@ test('@claim:license-privacy sends only the pasted token to Sociobot', async ({ 
     method: 'GET',
     body: null
   }]);
+});
+
+test('@claim:no-tracking loads no trackers or third-party fonts and scripts', async ({ page }) => {
+  const outsideRequests = new Set<string>();
+  page.on('request', (request) => {
+    const origin = new URL(request.url()).origin;
+    if (origin !== 'http://127.0.0.1:4173') outsideRequests.add(origin);
+  });
+  await page.goto('/');
+  await page.waitForLoadState('networkidle');
+  expect([...outsideRequests]).toEqual(['https://api.github.com']);
+  expect(await page.locator('script[src^="http"], link[rel="stylesheet"][href^="http"]').count()).toBe(0);
+  expect((await page.context().cookies()).filter((cookie) => cookie.domain.includes('127.0.0.1'))).toEqual([]);
 });
 
 test('empty sampled photos are reported unreadable', async ({ page }) => {
@@ -154,11 +224,24 @@ test('the same selected folder cannot be checked as its own copy', async ({ page
 });
 
 test('@claim:demo-isolation demo data never appears in a real check', async ({ page }) => {
-  await page.goto('/demo');
+  await page.goto('/check');
+  const before = await page.evaluate(() => {
+    localStorage.setItem('family-archive-check:profiles', JSON.stringify([{ main: '/Real/Main', backup: '/Real/Copy', savedAt: '2026-08-29T00:00:00.000Z' }]));
+    localStorage.setItem('family-archive-check:sentinel', 'real-data-must-not-change');
+    return Object.fromEntries(Object.entries(localStorage).sort(([left], [right]) => left.localeCompare(right)));
+  });
+  await page.goto('/?demo=1');
   await expect(page.getByText('2024/01-New-year/fireworks.mp4')).toBeVisible();
-  await page.getByRole('link', { name: 'Check folders' }).click();
+  const download = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Export recovery file list' }).click();
+  await download;
+  await page.getByRole('button', { name: 'Reset demo' }).click();
+  await page.getByRole('button', { name: 'Start for real' }).click();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Check two archive folders');
   await expect(page.getByText('2024/01-New-year/fireworks.mp4')).toHaveCount(0);
+  const after = await page.evaluate(() => Object.fromEntries(Object.entries(localStorage).sort(([left], [right]) => left.localeCompare(right))));
+  expect(after).toEqual(before);
+  expect(Object.keys(after).filter((key) => key.startsWith('demo:'))).toEqual([]);
 });
 
 test('@claim:handoff-sheet opens a printable recovery handoff', async ({ page }) => {
@@ -167,6 +250,12 @@ test('@claim:handoff-sheet opens a printable recovery handoff', async ({ page })
   await expect(page).toHaveURL(/\/print\/sample-family-archive$/);
   await expect(page.getByText('Demo — sample data, nothing is saved')).toBeVisible();
   await expect(page.locator('main')).toHaveCount(1);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('How to recover this family archive');
+  await expect(page.locator('.print-sheet > ol > li')).toHaveCount(4);
+  await expect(page.getByRole('definition').filter({ hasText: '/Volumes/Family Photos' })).toBeVisible();
+  await expect(page.getByRole('definition').filter({ hasText: '/Volumes/Blue Backup' })).toBeVisible();
+  await expect(page.getByText('5 matching paths. 1 item needs review.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Print this sheet' })).toBeVisible();
 });
 
 test('@claim:platform-download links a detected platform to a release asset', async ({ page }) => {
@@ -179,7 +268,26 @@ test('@claim:platform-download links a detected platform to a release asset', as
   await page.goto('/');
   const download = page.getByRole('link', { name: 'Download for macOS' });
   await expect(download).toHaveAttribute('href', 'https://example.test/family-archive-check.dmg');
-  await expect(page.getByText('v0.1.1 is ready. Builds are unsigned until signing certificates are added.')).toBeVisible();
+  await expect(page.getByText('v0.1.1 is ready. Your computer may warn you because this preview app is not yet signed.')).toBeVisible();
+});
+
+test('@claim:free-exports keeps both recovery exports available without a license', async ({ page }) => {
+  await page.goto('/demo');
+  expect(await page.evaluate(() => localStorage.getItem('sb_license:family-archive-check'))).toBeNull();
+  const download = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Export recovery file list' }).click();
+  expect((await download).suggestedFilename()).toBe('family-archive-file-list-2026-08-28.json');
+  await page.getByRole('button', { name: 'Print handoff sheet' }).click();
+  await expect(page.getByRole('button', { name: 'Print this sheet' })).toBeVisible();
+});
+
+test('@claim:accessibility-not-gated keeps keyboard and screen-reader support available without a license', async ({ page }) => {
+  await page.goto('/check');
+  expect(await page.evaluate(() => localStorage.getItem('sb_license:family-archive-check'))).toBeNull();
+  await page.getByRole('button', { name: 'Choose and read main folder' }).focus();
+  await expect(page.getByRole('button', { name: 'Choose and read main folder' })).toBeFocused();
+  const results = await new AxeBuilder({ page }).analyze();
+  expect(results.violations.filter((violation) => ['serious', 'critical'].includes(violation.impact ?? ''))).toEqual([]);
 });
 
 test('pages meet the serious accessibility baseline', async ({ page }) => {
@@ -229,7 +337,7 @@ test('cold-load keyboard order starts with the skip link and route changes annou
 
   await page.goBack();
   await expect(page.getByRole('heading', { level: 1 })).toBeFocused();
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Check every family photo has a copy');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Check every family photo and video has a copy');
 });
 
 test('check screen keeps its content at 200 percent text size', async ({ page }) => {
@@ -243,7 +351,7 @@ test('check screen keeps its content at 200 percent text size', async ({ page })
 test('desktop first screen keeps its audience and primary action visible', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('/');
-  for (const locator of [page.locator('.hero-copy .lede'), page.getByRole('link', { name: 'Try it with sample data' })]) {
+  for (const locator of [page.locator('.hero-copy .lede'), page.getByRole('link', { name: 'Try it with sample data' }), page.locator('.plain-facts').getByText('Household license: $29 once.')]) {
     const box = await locator.boundingBox();
     expect(box).not.toBeNull();
     expect(box!.y + box!.height).toBeLessThanOrEqual(900);
@@ -255,8 +363,11 @@ test('mobile layout keeps actions inside the viewport', async ({ page }) => {
   await page.goto('/demo');
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow).toBeLessThanOrEqual(1);
-  await expect(page.getByRole('button', { name: 'Export recovery manifest' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Export recovery file list' })).toBeVisible();
   await page.goto('/');
+  const priceFact = await page.locator('.plain-facts').getByText('Household license: $29 once.').boundingBox();
+  expect(priceFact).not.toBeNull();
+  expect(priceFact!.y + priceFact!.height).toBeLessThanOrEqual(844);
   for (const link of await page.locator('.site-footer a').all()) {
     expect((await link.boundingBox())!.height).toBeGreaterThanOrEqual(44);
   }
@@ -264,6 +375,25 @@ test('mobile layout keeps actions inside the viewport', async ({ page }) => {
   expect((await page.getByRole('link', { name: /Buy household license/ }).boundingBox())!.height).toBeGreaterThanOrEqual(44);
   await page.goto('/privacy');
   expect((await page.getByRole('link', { name: 'Return to the home page' }).boundingBox())!.height).toBeGreaterThanOrEqual(44);
+});
+
+test('every public route publishes its own title, description, canonical, and social metadata', async ({ page }) => {
+  const routes = [
+    ['/', 'Family Archive Check — Check photo backup copies', 'https://family-archive-check.sociobot.in/'],
+    ['/demo', 'Demo — Family Archive Check', 'https://family-archive-check.sociobot.in/demo'],
+    ['/check', 'Check folders — Family Archive Check', 'https://family-archive-check.sociobot.in/check'],
+    ['/privacy', 'Privacy — Family Archive Check', 'https://family-archive-check.sociobot.in/privacy'],
+    ['/terms', 'Terms — Family Archive Check', 'https://family-archive-check.sociobot.in/terms'],
+    ['/print/sample-family-archive', 'Sample recovery sheet — Family Archive Check', 'https://family-archive-check.sociobot.in/print/sample-family-archive']
+  ];
+  for (const [path, title, canonical] of routes) {
+    await page.goto(path);
+    await expect(page).toHaveTitle(title);
+    await expect(page.locator('meta[name="description"]')).not.toHaveAttribute('content', '');
+    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', canonical);
+    await expect(page.locator('meta[property="og:title"]')).toHaveAttribute('content', title);
+    await expect(page.locator('meta[name="twitter:title"]')).toHaveAttribute('content', title);
+  }
 });
 
 test('unknown routes return 404 and hashed assets are immutable', async ({ page, request }) => {

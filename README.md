@@ -2,7 +2,7 @@
 
 Check that family photos and videos have a readable, independent copy before handoff.
 
-Family Archive Check is a local-first desktop app for household archivists. It compares a main folder with a copy on another drive. It validates a deterministic sample of media, then reports missing, changed, and unreadable files. It also exports a portable JSON recovery manifest and a printable handoff sheet.
+Family Archive Check is a desktop app that keeps archive data on your computer. It compares a main folder with a copy on another drive. It tests the same repeatable sample of photos and videos, then reports missing, changed, and unreadable files. It also exports a recovery file list (JSON) and a printable handoff sheet.
 
 It does not host photos, identify faces, sync files, or change the selected folders.
 
@@ -12,9 +12,9 @@ Open `https://family-archive-check.sociobot.in/demo`. The sample works without a
 
 ## Install
 
-The [product site](https://family-archive-check.sociobot.in) detects macOS, Windows, or Linux and links to the matching release. Builds are unsigned until the operator adds signing certificates.
+The [product site](https://family-archive-check.sociobot.in) detects macOS, Windows, or Linux and links to the matching release. Your computer may warn you because this preview app is not yet signed.
 
-Command-line download helpers are also available:
+You can also download the app from a terminal:
 
 ```sh
 curl -fsSL https://family-archive-check.sociobot.in/install.sh | sh
@@ -24,17 +24,19 @@ curl -fsSL https://family-archive-check.sociobot.in/install.sh | sh
 irm https://family-archive-check.sociobot.in/install.ps1 | iex
 ```
 
-Both helpers download the current release, verify its SHA-256 checksum, and place it in Downloads. Open the downloaded installer to finish.
+Both helpers confirm that the download is unchanged, then place the installer in Downloads. Open the downloaded installer to finish.
+
+Developer note: each helper verifies the published SHA-256 checksum before saving the installer.
 
 ## Use the app
 
 1. Choose the main archive folder.
-2. Choose an independent copy on another drive or mounted location.
+2. Choose an independent copy on another connected drive or network folder.
 3. Select **Check both folders**.
 4. Review missing, changed, and unreadable items.
-5. Export the JSON recovery manifest and print the handoff sheet.
+5. Export the recovery file list (JSON) and print the handoff sheet.
 
-The installed app blocks folders on the same storage device. The browser fallback detects repeat selections by folder name but cannot identify physical drives.
+The installed app blocks folders on the same storage device. The website can spot the same folder name, but only the desktop app can confirm separate drives.
 
 The free app checks up to 500 files. A $29 one-time household license enables unlimited checks and saved folder profiles. Recovery exports and accessibility are never paid features.
 
@@ -50,7 +52,7 @@ npm run lint
 cargo test --manifest-path src-tauri/Cargo.toml
 ```
 
-Build the static deploy exactly as the work order expects:
+Build the deployable static site:
 
 ```sh
 npm run build:site
@@ -76,6 +78,6 @@ npm run tauri dev
 
 ## Privacy and license
 
-The scanner reads chosen folders locally. The website sends no archive data away. A license check sends only the pasted license token to the Sociobot billing API. See `/privacy` and `/terms` on the product site.
+The scanner reads chosen folders locally. The website sends no archive data away. A license check sends only the pasted token to Sociobot’s license service. See `/privacy` and `/terms` on the product site.
 
 The source code is available under the [MIT License](LICENSE).

@@ -42,3 +42,11 @@ jobs:
       - run: npm run build
       - name: Check configured outputs
         run: test -f dist/site/index.html && test -f dist/app/index.html
+
+  windows-installer-helper:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Execute valid and tampered checksum cases
+        shell: pwsh
+        run: ./tests/installers.ps1

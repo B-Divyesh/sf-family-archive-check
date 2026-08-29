@@ -12,6 +12,8 @@ Invoke-WebRequest $sums.browser_download_url -OutFile $sumFile
 $expected = ((Get-Content $sumFile | Where-Object { $_ -match [regex]::Escape($asset.name) }) -split '\s+')[0].ToLower()
 $actual = (Get-FileHash $download -Algorithm SHA256).Hash.ToLower()
 if ($expected -ne $actual) { Remove-Item $download; throw "The downloaded file did not match its checksum." }
-$destination = Join-Path ([Environment]::GetFolderPath('UserProfile')) "Downloads\$($asset.name)"
+$downloads = if ($env:FAC_DOWNLOADS_DIR) { $env:FAC_DOWNLOADS_DIR } else { Join-Path ([Environment]::GetFolderPath('UserProfile')) "Downloads" }
+New-Item -ItemType Directory -Path $downloads -Force | Out-Null
+$destination = Join-Path $downloads $asset.name
 Move-Item $download $destination -Force
 Write-Host "Verified and saved $($asset.name) in Downloads. Open it to install."
