@@ -58,5 +58,6 @@ Repair implementation: `3bbc6fdfaa1e6208feda884186e5d488980551e8`
 - Fresh-clone aggregate passed: `npm test` (27 Vitest + 33 Playwright), `npm run typecheck`, `npm run lint`, `npm run build`, `cargo test --manifest-path src-tauri/Cargo.toml`, and both clippy commands.
 - Local `verify-url.sh` has no console errors and reports title, `lang`, one h1, main landmark, image alt, and labeled buttons: `repair-artifacts/polish-2-local/verify.json`.
 - Local Lighthouse mobile: 99 performance, 100 accessibility, 100 best practices, 100 SEO: `repair-artifacts/polish-2-local/lighthouse-mobile.json`.
-
-The deployed cold-live recheck and deployment ID are added to `.factory/handoff.md` after the static deployment completes.
+- Deployed with `/opt/fleet/lib/deploy-static.sh family-archive-check dist/site` to `https://family-archive-check.sociobot.in`. Cold live checks returned 200 for `/`, `/demo`, `/check`, `/privacy`, `/terms`, and `/print/sample-family-archive`; `/print/not-a-real-check` and an unrelated missing route returned designed 404s.
+- Live route titles, canonicals, demo banner/data, console, and Axe all passed; the real recovery import flow produced “6 archive items need attention.” Evidence: `repair-artifacts/polish-2-live/`.
+- Live mobile Lighthouse: 100 performance, 100 accessibility, 100 best practices, 100 SEO: `repair-artifacts/polish-2-live/lighthouse-mobile.json`.

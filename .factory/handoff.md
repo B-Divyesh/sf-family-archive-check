@@ -37,13 +37,16 @@ Try the isolated sample at `/demo` or `/?demo=1`. Export its recovery file list,
 
 ## Deployment
 
-Static deployment and cold live verification are performed after this handoff update using:
+Static deployment completed using:
 
 ```sh
 /opt/fleet/lib/deploy-static.sh family-archive-check dist/site
 ```
 
-The final deployment result, cold-route checks, and live evidence are appended after deployment.
+- Live URL: `https://family-archive-check.sociobot.in` (Azure Static Web Apps host `jolly-mud-00c046f10.7.azurestaticapps.net`, Central US).
+- Cold recheck: `/`, `/demo`, `/check`, `/privacy`, `/terms`, and `/print/sample-family-archive` returned 200 with the expected route title and canonical. `/print/not-a-real-check` and a generic missing URL returned the designed 404 with HTTP 404.
+- Live browser check: demo banner and sample missing video appeared; console errors were zero; Axe found zero serious/critical violations across every public route; recovery-list import against a local restored-folder fixture produced “6 archive items need attention.”
+- Live evidence: `repair-artifacts/polish-2-live/verify.json`, `screenshot-desktop.png`, `screenshot-mobile.png`, `demo-mobile.png`, `recovery-check.png`, and `lighthouse-mobile.json` (100/100/100/100).
 
 ## Known gaps
 
