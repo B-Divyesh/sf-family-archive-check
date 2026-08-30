@@ -50,6 +50,7 @@ Repair implementation: `3bbc6fdfaa1e6208feda884186e5d488980551e8`
 | F-1-23 | README keeps “Build the deployable static site.” | README copy audit. |
 | F-1-24 | Privacy copy uses Sociobot’s license service, not implementation jargon. | `@claim:license-privacy`. |
 | F-1-25 | Unsupported signing-warning copy was removed rather than left as an untested claim. | Exact-copy search; `@claim:platform-download`. |
+| V8-1 | The historical multi-issue h1 defect is fixed by deriving the heading from the true issue count. | Browser test `a multi-item result names the true issue count in its heading and status`; live recovery recheck. |
 
 ## Verification
 
