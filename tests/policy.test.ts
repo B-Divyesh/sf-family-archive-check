@@ -149,7 +149,9 @@ esac
     expect(workflow).toContain('source_commit: $source_commit');
     expect(workflow).toContain('capabilities: ["recovery-file-import"]');
     expect(workflow).toContain('releaseDraft: true');
-    expect(workflow).toContain('draft: false');
+    expect(workflow).toContain('name: Publish verified release');
+    expect(workflow).toContain('-F draft=false -F prerelease=false');
+    expect(workflow).toContain('-f body="$release_body"');
     expect(workflow).toContain('gh api "repos/${GITHUB_REPOSITORY}/releases" --paginate > releases.json');
     expect(workflow).toContain('select(.tag_name == $tag)');
     expect(workflow).not.toContain('gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}" > release.json');
