@@ -1,47 +1,50 @@
-# Adversarial review 2 handoff
+# Family Archive Check — polish round 2 handoff
 
 ## Status
 
-**FAIL — review completed at `154eab54fbc57be419b148646b002390eb7dadf2`.**
+Repair implementation: `3bbc6fdfaa1e6208feda884186e5d488980551e8`.
 
-The full report is `.factory/review-2.md`. Product code was not changed.
+This repair closes every finding in `.factory/review-1.md` and `.factory/review-2.md`. The complete id-to-change-to-evidence map is in `.factory/polish-2.md`.
 
-## What was done
+## What changed
 
-- Opened the live site cold at 390×844 and 1440×900 and recorded the first-screen interpretation before scrolling.
-- Audited every landing and README sentence, heading, label, and action for length, plain wording, terminology, and claim coverage.
-- Exercised the one-click demo, JSON export, reset, exit, real-storage sentinel, same-origin request log, cookies, and offline reload.
-- Ran all 26 exact `.factory/claims.json` commands independently from clean clone `/tmp/fac-review-2-clean.c4tT0n`.
-- Rechecked every finding from review 1, polish 1, and the current handoff in live behavior and source.
-- Checked route metadata, deep links, reload, Back/focus behavior, 404 status, sitemap, links, visual identity, mobile overflow, and accessibility.
-- Ran aggregate tests, typecheck, lint, both builds, independent live Axe scans, and `verify-url.sh`.
+- Replaced public dynamic print-result URLs with a real in-place `/check` handoff preview. The sample handoff remains a deep-linkable static route, and unknown print paths return the designed HTTP 404.
+- Derived result h1 wording from the true issue count.
+- Completed the terminology cleanup: main archive, independent copy, and recovery file list are the only user-facing terms.
+- Added a real local recovery flow: import a validated recovery file list, choose a restored folder, and compare saved paths, sizes, and sampled fingerprints without uploading either file.
+- Registered every remaining public workflow, account, and recovery claim in `.factory/claims.json` and added behavioral or policy tests.
+- Rewrote the vague walkthrough, installer wording, and order-copy phrases. The unsupported signing claim was removed.
 
-## Verification results
+## Verification
 
-- 26/26 declared claim commands pass.
-- `npm test`: 23 Vitest and 29 Playwright tests pass.
-- `npm run typecheck`, `npm run lint`, and `npm run build` pass; `dist/site` and `dist/app` are produced.
-- Live Axe: zero violations at mobile and desktop on every public route and the 404.
-- Live demo isolation, same-origin request log, no cookies, Reset, Start for real, and offline reload pass.
-- All crawled links return 200 after redirects.
+- Clean clone: `/tmp/family-archive-check-polish-2-clean.vd88xY`, cloned at `3bbc6fdfaa1e6208feda884186e5d488980551e8`.
+- All 31 exact commands listed in `.factory/claims.json` passed independently. Logs: `/tmp/family-archive-check-polish-2-<claim-id>.log`.
+- Clean-clone aggregate passed: `npm test` (27 Vitest and 33 Playwright), `npm run typecheck`, `npm run lint`, `npm run build`, `cargo test --manifest-path src-tauri/Cargo.toml`, `cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings`, and `cargo clippy --manifest-path src-tauri/Cargo.toml --features desktop --all-targets -- -D warnings`.
+- Local browser smoke: `verify-url.sh` passed with no console errors. Evidence: `repair-artifacts/polish-2-local/verify.json`, `screenshot-desktop.png`, and `screenshot-mobile.png`.
+- Local mobile Lighthouse: performance 99, accessibility 100, best practices 100, SEO 100. Evidence: `repair-artifacts/polish-2-local/lighthouse-mobile.json`.
 
-## Findings left
-
-- Blocking: real `/print/<id>` handoff links break on reload and unknown print IDs return a false HTTP 200 with wrong metadata.
-- Blocking: the earlier V8-1 multi-issue h1 defect remains live.
-- Blocking: earlier F-1-14 terminology is half-fixed.
-- Major: five public statements lack their own claim entries/tests.
-- Major: the exported recovery file list cannot be imported for a later recovery comparison.
-- Minor: one vague/unmeasured heading and two unclear phrases remain.
-
-## How to verify
+## Run locally
 
 ```sh
-while IFS= read -r test_command; do bash -lc "$test_command" || exit $?; done < <(jq -r '.[].test' .factory/claims.json)
+npm ci
 npm test
-npm run typecheck
 npm run lint
 npm run build
+cargo test --manifest-path src-tauri/Cargo.toml
 ```
 
-For the principal live blockers, create a browser check with two missing files and confirm the h1 count. Open its handoff sheet, record `/print/<id>`, reload, and verify that the sheet persists. Open an unknown `/print/<id>` and require the designed HTTP 404 with page-not-found metadata.
+Try the isolated sample at `/demo` or `/?demo=1`. Export its recovery file list, choose **Start for real**, then choose **Import recovery file list** to rehearse a local restored-folder check.
+
+## Deployment
+
+Static deployment and cold live verification are performed after this handoff update using:
+
+```sh
+/opt/fleet/lib/deploy-static.sh family-archive-check dist/site
+```
+
+The final deployment result, cold-route checks, and live evidence are appended after deployment.
+
+## Known gaps
+
+None. Desktop installers remain unsigned preview artifacts until an operator provides signing credentials; no visitor-facing claim about that state is made.
