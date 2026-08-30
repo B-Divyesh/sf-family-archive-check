@@ -60,4 +60,6 @@ The product fixes from the first two rounds are retained and rechecked below. Th
 - Local full suite: `npm test` — 27 Vitest and 33 Playwright tests passed after the clean-server repair.
 - Browser smoke: `/opt/fleet/lib/verify-url.sh http://127.0.0.1:4173 repair-artifacts/polish-3-local` passed with no console errors, one h1, `lang=en`, a main landmark, and complete image alt text. Screenshots: `repair-artifacts/polish-3-local/screenshot-desktop.png`, `screenshot-mobile.png`, `demo-mobile.png`, and `not-found-desktop.png`.
 - Local route status: `/`, `/demo`, `/check`, `/privacy`, `/terms`, and `/print/sample-family-archive` returned 200; `/print/not-a-real-check` and `/missing-stop` returned designed 404s.
-- The clean-clone and deployed-live evidence is recorded in `.factory/handoff.md` after the final verification pass.
+- Local mobile Lighthouse: 100 performance, 100 accessibility, 100 best practices, and 100 SEO; LCP 1.5 s, CLS 0, and TBT 0 ms. Evidence: `repair-artifacts/polish-3-local/lighthouse-mobile.json`.
+- Clean clone `/tmp/family-archive-check-polish-3-clean.eDF6Sr` at `2d63f0e4e861d66fa48e81f68fde8250f2f381f6` passed all 31 declared claim commands independently, then passed its aggregate 27-unit/33-browser suite, typecheck, lint, both builds, native tests, and both clippy configurations. Per-claim logs are `/tmp/family-archive-check-polish-3-<claim-id>.log`.
+- Deployed-live evidence is recorded in `.factory/handoff.md` after the final verification pass.

@@ -75,4 +75,4 @@ The README was checked sentence by sentence. Its longest sentence has 21 words. 
 | Paid entitlement | household license |
 | Isolated example | demo / sample data |
 
-Catalog description: “Check family photo and video copies before handing an archive to family.” (11 words, 70 characters.)
+Catalog description: “Check family photo and video copies before handing an archive to family.” (11 words, 72 characters.)
