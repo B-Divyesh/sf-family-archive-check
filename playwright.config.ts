@@ -9,7 +9,9 @@ export default defineConfig({
     trace: 'retain-on-failure'
   },
   webServer: {
-    command: 'npm run build:site && node tests/serve-site.mjs',
+    // Always build and start a server owned by this run. The command clears only
+    // an orphaned Vite/serve-site process from this workspace before it starts.
+    command: 'npm run clean:test-server && npm run build:site && exec node tests/serve-site.mjs',
     url: 'http://127.0.0.1:4173',
     reuseExistingServer: false,
     timeout: 120_000

@@ -1,4 +1,4 @@
-# Copy audit — polish round 2
+# Copy audit — polish round 3
 
 Audited 2026-08-29 after the F-1-13 through F-1-25 rewrites. Hyphenated terms, file names, URLs, and version numbers count as one word. No sentence exceeds 22 words. No sentence contains a banned marketing word.
 
@@ -75,4 +75,4 @@ The README was checked sentence by sentence. Its longest sentence has 21 words. 
 | Paid entitlement | household license |
 | Isolated example | demo / sample data |
 
-Catalog description: “Check family photo and video copies before handoff.” (8 words, 50 characters.)
+Catalog description: “Check family photo and video copies before handing an archive to family.” (11 words, 70 characters.)

@@ -5,13 +5,14 @@ import { extname, join, normalize } from 'node:path';
 const root = join(process.cwd(), 'dist/site');
 const config = JSON.parse(readFileSync(join(root, 'staticwebapp.config.json'), 'utf8'));
 const knownAppRoutes = new Set(['/', '/demo', '/check', '/privacy', '/terms', '/print/sample-family-archive']);
+const port = Number.parseInt(process.env.FAC_TEST_PORT ?? '4173', 10);
 const mime = {
   '.css': 'text/css; charset=utf-8', '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
   '.json': 'application/json; charset=utf-8', '.png': 'image/png', '.ps1': 'text/plain; charset=utf-8',
   '.sh': 'text/plain; charset=utf-8', '.svg': 'image/svg+xml', '.webp': 'image/webp', '.xml': 'application/xml; charset=utf-8'
 };
 
-createServer((request, response) => {
+const server = createServer((request, response) => {
   const pathname = decodeURIComponent(new URL(request.url ?? '/', 'http://127.0.0.1').pathname);
   const isAppRoute = knownAppRoutes.has(pathname);
   const requested = normalize(pathname).replace(/^(\.\.(\/|\\|$))+/, '');
@@ -28,4 +29,14 @@ createServer((request, response) => {
   response.statusCode = status;
   response.setHeader('Content-Type', mime[extname(file)] ?? 'application/octet-stream');
   createReadStream(file).pipe(response);
-}).listen(4173, '127.0.0.1');
+});
+
+server.on('error', (error) => {
+  console.error(`Family Archive Check test server could not start on ${port}: ${error.message}`);
+  process.exitCode = 1;
+});
+
+const stop = () => server.close(() => process.exit());
+process.once('SIGINT', stop);
+process.once('SIGTERM', stop);
+server.listen(port, '127.0.0.1');

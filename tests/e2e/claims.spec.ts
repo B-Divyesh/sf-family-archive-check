@@ -74,32 +74,44 @@ test('@claim:local-only sends no demo data off site', async ({ page }) => {
   }
 });
 
-test('@claim:offline-reload works offline after the first visit', async ({ page, context }) => {
-  await page.goto('/demo');
-  await page.evaluate(() => navigator.serviceWorker.ready);
-  await page.reload();
-  await context.setOffline(true);
-  await page.reload();
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('One archive item needs attention');
+test('@claim:offline-reload works offline after the first visit', async ({ browser }) => {
+  const context = await browser.newContext();
+  try {
+    const page = await context.newPage();
+    await page.goto('/demo');
+    await page.evaluate(() => navigator.serviceWorker.ready);
+    await page.reload();
+    await context.setOffline(true);
+    await page.reload();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('One archive item needs attention');
+  } finally {
+    await context.close();
+  }
 });
 
-test('service worker replaces stale pages online and keeps the update offline', async ({ page, context }) => {
-  await page.goto('/');
-  await page.evaluate(() => navigator.serviceWorker.ready);
-  await page.evaluate(async () => {
-    const cache = await caches.open('family-archive-check-v2');
-    await cache.put('/', new Response('<!doctype html><html><body><main><h1>Stale release</h1></main></body></html>', {
-      headers: { 'Content-Type': 'text/html' }
-    }));
-  });
+test('service worker replaces stale pages online and keeps the update offline', async ({ browser }) => {
+  const context = await browser.newContext();
+  try {
+    const page = await context.newPage();
+    await page.goto('/');
+    await page.evaluate(() => navigator.serviceWorker.ready);
+    await page.evaluate(async () => {
+      const cache = await caches.open('family-archive-check-v2');
+      await cache.put('/', new Response('<!doctype html><html><body><main><h1>Stale release</h1></main></body></html>', {
+        headers: { 'Content-Type': 'text/html' }
+      }));
+    });
 
-  await page.reload();
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Check every family photo and video has a copy');
-  await expect(page.getByText('Version 0.1.9')).toBeVisible();
+    await page.reload();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Check every family photo and video has a copy');
+    await expect(page.getByText('Version 0.1.9')).toBeVisible();
 
-  await context.setOffline(true);
-  await page.reload();
-  await expect(page.getByText('Version 0.1.9')).toBeVisible();
+    await context.setOffline(true);
+    await page.reload();
+    await expect(page.getByText('Version 0.1.9')).toBeVisible();
+  } finally {
+    await context.close();
+  }
 });
 
 test.describe('native license flow', () => {

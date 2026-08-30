@@ -4,6 +4,7 @@ dist/
 *.log
 test-results/
 playwright-report/
+repair-artifacts/
 src-tauri/target/
 graphify-out/
 .DS_Store
