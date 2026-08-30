@@ -39,8 +39,18 @@ Try the isolated sample at `/demo` or `/?demo=1`. Export its recovery file list,
 
 ## Deployment
 
-The factory static deployment and cold live recheck are recorded after the final committed build is deployed.
+Static deployment completed with:
+
+```sh
+/opt/fleet/lib/deploy-static.sh family-archive-check dist/site
+```
+
+- Deployment: `c9b4065d-8a06-4b11-acc5-339b59149607` to Azure Static Web Apps host `jolly-mud-00c046f10.7.azurestaticapps.net`; the custom domain is `https://family-archive-check.sociobot.in`.
+- Cold live status checks: `/`, `/demo`, `/check`, `/privacy`, `/terms`, and `/print/sample-family-archive` returned 200. `/print/not-a-real-check` and `/missing-stop` returned the designed 404 with HTTP 404.
+- Live smoke: `/opt/fleet/lib/verify-url.sh https://family-archive-check.sociobot.in repair-artifacts/polish-3-live` passed with zero console errors, one h1, `lang=en`, a main landmark, and complete alt text. Evidence: `repair-artifacts/polish-3-live/verify.json`, `screenshot-desktop.png`, `screenshot-mobile.png`, `demo-mobile.png`, and `not-found-desktop.png`.
+- A cold production browser check passed route titles/canonicals, serious/critical Axe checks on every public route, the first-screen price fact at 390×844, one-click and direct `?demo=1`, Reset demo, Start for real, seeded real-storage equality, real 404s, and an offline service-worker reload.
+- Live mobile Lighthouse: 100 performance, 100 accessibility, 100 best practices, and 100 SEO; LCP 1.2 s, CLS 0, and TBT 30 ms. Evidence: `repair-artifacts/polish-3-live/lighthouse-mobile.json`.
 
 ## Known gaps
 
-None expected. Desktop installers remain unsigned preview artifacts until an operator provides signing credentials; no visitor-facing claim about that state is made.
+None. Desktop installers remain unsigned preview artifacts until an operator provides signing credentials; no visitor-facing claim about that state is made.
