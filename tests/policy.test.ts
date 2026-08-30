@@ -133,11 +133,30 @@ esac
     expect(workflow).toMatch(/files:\s*\|\s*SHA256SUMS\s*latest\.json/s);
   });
 
+  it('@claim:release-recovery-import binds each published release to the recovery feature and source commit', () => {
+    const workflow = readFileSync('.github/workflows/release.yml', 'utf8');
+    const buildScript = readFileSync('src-tauri/build.rs', 'utf8');
+    const nativeSource = readFileSync('src-tauri/src/lib.rs', 'utf8');
+    const interfaceSource = readFileSync('src/main.ts', 'utf8');
+
+    expect(buildScript).toContain('desktop releases require recovery-file import');
+    expect(buildScript).toContain('Import recovery file list');
+    expect(nativeSource).toContain('RECOVERY_IMPORT_CAPABILITY: &str = "recovery-file-import"');
+    expect(nativeSource).toContain('source_commit: env!("FAC_BUILD_COMMIT")');
+    expect(interfaceSource).toContain("fetch(`https://api.github.com/repos/${REPO}/releases/latest`)");
+    expect(workflow).toContain("grep -aF 'recovery-file-import' \"$native_binary\"");
+    expect(workflow).toContain('grep -aF "$SOURCE_COMMIT" "$native_binary"');
+    expect(workflow).toContain('source_commit: $source_commit');
+    expect(workflow).toContain('capabilities: ["recovery-file-import"]');
+    expect(workflow).toContain('releaseDraft: true');
+    expect(workflow).toContain('draft: false');
+  });
+
   it('keeps license verification outside the offline cache and permits the desktop proxy connection', () => {
     const serviceWorker = readFileSync('public/sw.js', 'utf8');
     const tauri = JSON.parse(readFileSync('src-tauri/tauri.conf.json', 'utf8'));
     expect(serviceWorker).toContain("url.pathname.startsWith('/api/')");
-    expect(serviceWorker).toContain("family-archive-check-v3");
+    expect(serviceWorker).toContain("family-archive-check-v4");
     expect(tauri.app.security.csp).toContain('https://family-archive-check.sociobot.in');
     expect(tauri.app.security.csp).not.toContain('https://api.sociobot.in');
   });

@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { describe, expect, it } from 'vitest';
 
@@ -17,8 +17,15 @@ describe('configured production build', () => {
 
     const siteHtml = readFileSync('dist/site/index.html', 'utf8');
     const appHtml = readFileSync('dist/app/index.html', 'utf8');
+    const desktopJavaScript = readdirSync('dist/app/assets')
+      .filter((name) => name.endsWith('.js'))
+      .map((name) => readFileSync(`dist/app/assets/${name}`, 'utf8'))
+      .join('\n');
     expect(siteHtml).toContain('<div id="app"></div>');
     expect(appHtml).toContain('<div id="app"></div>');
+    expect(desktopJavaScript).toContain('Import recovery file list');
+    expect(desktopJavaScript).toContain('recovery-file-input');
+    expect(desktopJavaScript).toContain('release_identity');
   }, 60_000);
 
   it('keeps the static build tool in production dependencies', () => {

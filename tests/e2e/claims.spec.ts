@@ -104,11 +104,11 @@ test('service worker replaces stale pages online and keeps the update offline', 
 
     await page.reload();
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Check every family photo and video has a copy');
-    await expect(page.getByText('Version 0.1.9')).toBeVisible();
+    await expect(page.getByText('Version 0.1.10')).toBeVisible();
 
     await context.setOffline(true);
     await page.reload();
-    await expect(page.getByText('Version 0.1.9')).toBeVisible();
+    await expect(page.getByText('Version 0.1.10')).toBeVisible();
   } finally {
     await context.close();
   }
@@ -382,9 +382,9 @@ test('a multi-item result names the true issue count in its heading and status',
 
 test('@claim:platform-download links every desktop platform and protects phones from incompatible downloads', async ({ browser }) => {
   const assets = [
-    { name: 'Family.Archive.Check_0.1.1_aarch64.dmg', browser_download_url: 'https://example.test/family-archive-check.dmg' },
-    { name: 'Family.Archive.Check_0.1.1_x64-setup.exe', browser_download_url: 'https://example.test/family-archive-check.exe' },
-    { name: 'Family.Archive.Check_0.1.1_amd64.AppImage', browser_download_url: 'https://example.test/family-archive-check.AppImage' }
+    { name: 'Family.Archive.Check_0.1.10_aarch64.dmg', browser_download_url: 'https://example.test/family-archive-check.dmg' },
+    { name: 'Family.Archive.Check_0.1.10_x64-setup.exe', browser_download_url: 'https://example.test/family-archive-check.exe' },
+    { name: 'Family.Archive.Check_0.1.10_amd64.AppImage', browser_download_url: 'https://example.test/family-archive-check.AppImage' }
   ];
   const desktopCases = [
     { platform: 'MacIntel', userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)', label: 'macOS', url: assets[0].browser_download_url },
@@ -397,16 +397,16 @@ test('@claim:platform-download links every desktop platform and protects phones 
     try {
       await context.addInitScript((platform) => Object.defineProperty(navigator, 'platform', { get: () => platform }), desktop.platform);
       const page = await context.newPage();
-      await page.route('https://api.github.com/repos/B-Divyesh/sf-family-archive-check/releases?per_page=1', (route) => route.fulfill({
+      await page.route('https://api.github.com/repos/B-Divyesh/sf-family-archive-check/releases/latest', (route) => route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify([{ tag_name: 'v0.1.1', assets }])
+        body: JSON.stringify({ tag_name: 'v0.1.10', assets })
       }));
       await page.goto('/');
       const download = page.getByRole('link', { name: `Download for ${desktop.label} (external site)` });
       await expect(download).toHaveAttribute('href', desktop.url);
       await expect(download).toHaveAttribute('rel', 'external');
-      await expect(page.getByText('v0.1.1 is ready. Choose the installer for this device.')).toBeVisible();
+      await expect(page.getByText('v0.1.10 is ready. Choose the installer for this device.')).toBeVisible();
     } finally {
       await context.close();
     }
@@ -440,6 +440,40 @@ test('@claim:platform-download links every desktop platform and protects phones 
     } finally {
       await context.close();
     }
+  }
+});
+
+test('a cached v0.1.9 release cannot keep the repaired download stale', async ({ browser }) => {
+  const context = await browser.newContext({ userAgent: 'Mozilla/5.0 (X11; Linux x86_64)' });
+  try {
+    await context.addInitScript(() => {
+      Object.defineProperty(navigator, 'platform', { get: () => 'Linux x86_64' });
+      localStorage.setItem('family-archive-check:release', JSON.stringify({
+        time: Date.now(),
+        release: {
+          tag_name: 'v0.1.9',
+          assets: [{ name: 'Family.Archive.Check_0.1.9_amd64.AppImage', browser_download_url: 'https://example.test/stale.AppImage' }]
+        }
+      }));
+    });
+    let requests = 0;
+    await context.route('https://api.github.com/repos/B-Divyesh/sf-family-archive-check/releases/latest', (route) => {
+      requests += 1;
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          tag_name: 'v0.1.10',
+          assets: [{ name: 'Family.Archive.Check_0.1.10_amd64.AppImage', browser_download_url: 'https://example.test/current.AppImage' }]
+        })
+      });
+    });
+    const page = await context.newPage();
+    await page.goto('/');
+    await expect(page.getByRole('link', { name: 'Download for Linux (external site)' })).toHaveAttribute('href', 'https://example.test/current.AppImage');
+    expect(requests).toBe(1);
+  } finally {
+    await context.close();
   }
 });
 

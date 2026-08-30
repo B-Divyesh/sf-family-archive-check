@@ -77,7 +77,7 @@ npm run tauri dev
 
 ## Release
 
-`.github/workflows/release.yml` runs for `v*` tags. It builds Tauri installers for macOS arm64 and x86_64, Windows, and Linux. The workflow attaches installers, `SHA256SUMS`, and `latest.json` to the GitHub Release.
+`.github/workflows/release.yml` runs for `v*` tags. It builds Tauri installers for macOS arm64 and x86_64, Windows, and Linux. Before publication, it checks that the AppImage includes recovery-file import and the tagged source commit. The workflow attaches installers, `SHA256SUMS`, and `latest.json` to the GitHub Release.
 
 ## Privacy and license
 

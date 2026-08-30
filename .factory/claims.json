@@ -210,6 +210,13 @@
     "sandbox": "parse the checked-in release workflow and assert tauri-action publishes installers while the checksum job uploads SHA256SUMS and latest.json"
   },
   {
+    "id": "release-recovery-import",
+    "claim": "Published desktop releases verify recovery-file import and their exact source commit before publication.",
+    "where": "README release section",
+    "test": "npm run test:unit -- --testNamePattern @claim:release-recovery-import",
+    "sandbox": "inspect the native build guard, embedded release identity, and release workflow; require the extracted AppImage to contain the recovery capability and exact source commit before publishing metadata"
+  },
+  {
     "id": "recovery-import",
     "claim": "Imports a recovery file list to check a restored folder.",
     "where": "check screen, handoff sheet, and README",

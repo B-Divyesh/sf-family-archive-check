@@ -13,6 +13,24 @@ use std::{
 use walkdir::WalkDir;
 
 const MEDIA_SAMPLE_LIMIT: usize = 48;
+const RECOVERY_IMPORT_CAPABILITY: &str = "recovery-file-import";
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ReleaseIdentity {
+    version: &'static str,
+    source_commit: &'static str,
+    capabilities: [&'static str; 1],
+}
+
+#[cfg_attr(feature = "desktop", tauri::command)]
+fn release_identity() -> ReleaseIdentity {
+    ReleaseIdentity {
+        version: env!("CARGO_PKG_VERSION"),
+        source_commit: env!("FAC_BUILD_COMMIT"),
+        capabilities: [RECOVERY_IMPORT_CAPABILITY],
+    }
+}
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -361,7 +379,11 @@ fn write_manifest(path: String, contents: String) -> Result<(), String> {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
-        .invoke_handler(tauri::generate_handler![scan_folder, write_manifest])
+        .invoke_handler(tauri::generate_handler![
+            scan_folder,
+            write_manifest,
+            release_identity
+        ])
         .run(tauri::generate_context!())
         .expect("error while running Family Archive Check");
 }
@@ -369,6 +391,14 @@ pub fn run() {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn release_identity_records_recovery_import_and_source() {
+        let identity = release_identity();
+        assert_eq!(identity.version, env!("CARGO_PKG_VERSION"));
+        assert!(!identity.source_commit.is_empty());
+        assert_eq!(identity.capabilities, ["recovery-file-import"]);
+    }
 
     #[test]
     fn claim_read_only_scan_reads_files_without_changing_them() {

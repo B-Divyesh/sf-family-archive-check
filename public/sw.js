@@ -1,4 +1,4 @@
-const CACHE = 'family-archive-check-v3';
+const CACHE = 'family-archive-check-v4';
 const CORE = ['/', '/demo', '/check', '/privacy', '/terms', '/assets/archive-route.webp', '/assets/archive-route-800.webp', '/favicon.svg'];
 
 self.addEventListener('install', (event) => {

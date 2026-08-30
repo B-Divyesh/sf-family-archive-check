@@ -6,15 +6,48 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Release tag
+        description: Existing release tag to build
         required: true
-        default: v0.1.9
+        default: v0.1.10
 
 permissions:
   contents: write
 
 jobs:
+  verify:
+    runs-on: ubuntu-22.04
+    outputs:
+      source_commit: ${{ steps.identity.outputs.source_commit }}
+      tag: ${{ steps.identity.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.12.0
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Verify tag and source identity
+        id: identity
+        shell: bash
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          expected_tag="v${version}"
+          requested_tag="${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}"
+          test "$requested_tag" = "$expected_tag"
+          test "$(git rev-parse HEAD)" = "$(git rev-list -n 1 "$expected_tag")"
+          echo "tag=$expected_tag" >> "$GITHUB_OUTPUT"
+          echo "source_commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm test
+      - run: npm run typecheck
+      - run: cargo test --manifest-path src-tauri/Cargo.toml
+
   build:
+    needs: verify
     strategy:
       fail-fast: false
       matrix:
@@ -34,9 +67,11 @@ jobs:
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.verify.outputs.tag }}
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 22.12.0
           cache: npm
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -52,30 +87,49 @@ jobs:
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FAC_BUILD_COMMIT: ${{ needs.verify.outputs.source_commit }}
         with:
-          tagName: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
-          releaseName: Family Archive Check ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
-          releaseBody: Unsigned preview installers for macOS, Windows, and Linux. Verify downloads with SHA256SUMS.
-          releaseDraft: false
+          tagName: ${{ needs.verify.outputs.tag }}
+          releaseName: Family Archive Check ${{ needs.verify.outputs.tag }}
+          releaseBody: Desktop builds are being verified. Checksums and source identity will be attached before publication.
+          releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}
 
   checksums:
-    needs: build
+    needs: [verify, build]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Download release assets
+        with:
+          ref: ${{ needs.verify.outputs.tag }}
+      - name: Download and verify release assets
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+          RELEASE_TAG: ${{ needs.verify.outputs.tag }}
+          SOURCE_COMMIT: ${{ needs.verify.outputs.source_commit }}
+        shell: bash
         run: |
           mkdir release-assets
-          gh release download "${RELEASE_TAG}" --dir release-assets
-          find release-assets -type f ! -name SHA256SUMS ! -name latest.json -print0 | sort -z | xargs -0 sha256sum | sed 's#release-assets/##' > SHA256SUMS
+          gh release download "$RELEASE_TAG" --dir release-assets
+          appimage="$(find release-assets -maxdepth 1 -type f -name '*.AppImage' -print -quit)"
+          test -n "$appimage"
+          chmod +x "$appimage"
+          "$appimage" --appimage-extract >/dev/null
+          native_binary="$(find squashfs-root/usr/bin -maxdepth 1 -type f -print -quit)"
+          grep -aF 'recovery-file-import' "$native_binary"
+          grep -aF "$SOURCE_COMMIT" "$native_binary"
+          find release-assets -maxdepth 1 -type f ! -name SHA256SUMS ! -name latest.json -printf '%f\0' | sort -z | xargs -0 -I{} sha256sum "release-assets/{}" | sed 's#release-assets/##' > SHA256SUMS
           gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}" > release.json
-          jq '{
+          jq --arg source_commit "$SOURCE_COMMIT" --arg repository "$GITHUB_REPOSITORY" '{
             version: .tag_name,
+            source_commit: $source_commit,
+            capabilities: ["recovery-file-import"],
+            metadata_api: .url,
+            checksums: {
+              algorithm: "SHA-256",
+              url: ("https://github.com/" + $repository + "/releases/download/" + .tag_name + "/SHA256SUMS")
+            },
             platforms: {
               macos_arm64: ([.assets[] | select(.name | test("aarch64.*\\.dmg$"))][0].browser_download_url // null),
               macos_x64: ([.assets[] | select(.name | test("x64.*\\.dmg$"))][0].browser_download_url // null),
@@ -85,10 +139,26 @@ jobs:
             },
             assets: [.assets[] | {name, url: .browser_download_url}]
           }' release.json > latest.json
-          jq -e 'all(.platforms[]; . != null)' latest.json
+          jq -e --arg source_commit "$SOURCE_COMMIT" '.source_commit == $source_commit and (.capabilities | index("recovery-file-import")) and all(.platforms[]; . != null)' latest.json
       - uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+          tag_name: ${{ needs.verify.outputs.tag }}
+          draft: false
+          prerelease: false
+          body: |
+            Unsigned desktop installers for macOS, Windows, and Linux.
+
+            Source commit: ${{ needs.verify.outputs.source_commit }}
+            Includes recovery-file import. Verify downloads with SHA256SUMS.
           files: |
             SHA256SUMS
             latest.json
+      - name: Verify published release metadata
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ needs.verify.outputs.tag }}
+          SOURCE_COMMIT: ${{ needs.verify.outputs.source_commit }}
+        shell: bash
+        run: |
+          gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}" > published-release.json
+          jq -e --arg tag "$RELEASE_TAG" --arg source "$SOURCE_COMMIT" '.tag_name == $tag and .draft == false and (.body | contains($source)) and ([.assets[].name] | index("SHA256SUMS")) and ([.assets[].name] | index("latest.json"))' published-release.json

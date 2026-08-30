@@ -15,6 +15,8 @@ const LICENSE_VERIFY_ENDPOINT = (__APP_BUILD__ || isTauri)
   ? `${SITE}/api/license/verify`
   : '/api/license/verify';
 const REAL_PROFILES_KEY = `${PRODUCT}:profiles`;
+const REQUIRED_RELEASE_TAG = 'v0.1.10';
+const RELEASE_CACHE_KEY = `${PRODUCT}:release:${REQUIRED_RELEASE_TAG}`;
 const app = document.querySelector<HTMLDivElement>('#app')!;
 let nativeRoute = '/check';
 let primaryScan: TargetScan | undefined;
@@ -26,8 +28,10 @@ let restoredScan: TargetScan | undefined;
 let showingHandoff = false;
 let busy = false;
 let scanError = '';
+let nativeReleaseIdentity: ReleaseIdentity | undefined;
 
 interface FolderProfile { main: string; backup: string; savedAt: string }
+interface ReleaseIdentity { version: string; sourceCommit: string; capabilities: string[] }
 type VisitorPlatform = 'mobile' | 'windows' | 'mac' | 'linux' | 'other';
 
 const escapeHtml = (value: unknown) => String(value).replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character]!);
@@ -118,10 +122,12 @@ function header(active: string) {
 }
 
 function footer() {
+  const source = nativeReleaseIdentity?.sourceCommit;
+  const build = source && source !== 'development' ? ` · Build ${escapeHtml(source.slice(0, 8))}` : '';
   return `<footer class="site-footer">
     <p>Check family photo copies before handoff.</p>
     <nav aria-label="Footer navigation"><a href="/privacy" data-link>Privacy</a><a href="/terms" data-link>Terms</a><a href="https://sociobot.in" rel="external">Built by Param Factory <span class="sr-only">(external site)</span></a></nav>
-    <p>Version 0.1.9 · Generated art disclosed in the design notes.</p>
+    <p id="release-identity"${source ? ` data-source-commit="${escapeHtml(source)}" data-capabilities="${escapeHtml(nativeReleaseIdentity!.capabilities.join(','))}"` : ''}>Version 0.1.10${build} · Generated art disclosed in the design notes.</p>
   </footer>`;
 }
 
@@ -579,15 +585,18 @@ async function loadRelease() {
     return;
   }
   try {
-    const key = 'family-archive-check:release';
-    const saved = JSON.parse(localStorage.getItem(key) ?? 'null') as { time: number; release: Release } | null;
-    const release = saved && Date.now() - saved.time < 3_600_000 ? saved.release : await fetch(`https://api.github.com/repos/${REPO}/releases?per_page=1`).then(async (response) => {
-      if (!response.ok) throw new Error('release unavailable');
-      const releases = await response.json() as Release[];
-      if (!releases[0]) throw new Error('platform asset unavailable');
-      return releases[0];
-    });
-    if (!saved || saved.release.tag_name !== release.tag_name) localStorage.setItem(key, JSON.stringify({ time: Date.now(), release }));
+    const saved = JSON.parse(localStorage.getItem(RELEASE_CACHE_KEY) ?? 'null') as { time: number; release: Release } | null;
+    let release: Release;
+    if (saved && saved.release.tag_name === REQUIRED_RELEASE_TAG && Date.now() - saved.time < 3_600_000) {
+      release = saved.release;
+    } else {
+      release = await fetch(`https://api.github.com/repos/${REPO}/releases/latest`).then(async (response) => {
+        if (!response.ok) throw new Error('release unavailable');
+        return response.json() as Promise<Release>;
+      });
+    }
+    if (release.tag_name !== REQUIRED_RELEASE_TAG) throw new Error('current app release unavailable');
+    if (!saved || saved.release.tag_name !== release.tag_name) localStorage.setItem(RELEASE_CACHE_KEY, JSON.stringify({ time: Date.now(), release }));
     const match = release.assets.find((asset) => platform === 'windows' ? /\.(msi|exe)$/i.test(asset.name) : platform === 'mac' ? /\.(dmg|app\.tar\.gz)$/i.test(asset.name) : /\.(AppImage|deb)$/i.test(asset.name));
     if (!match) throw new Error('platform asset unavailable');
     button.href = match.browser_download_url;
@@ -600,6 +609,18 @@ async function loadRelease() {
 }
 
 interface Release { tag_name: string; assets: { name: string; browser_download_url: string }[] }
+
+async function loadNativeReleaseIdentity() {
+  try {
+    const { invoke } = await import('@tauri-apps/api/core');
+    const identity = await invoke<ReleaseIdentity>('release_identity');
+    if (identity.version !== REQUIRED_RELEASE_TAG.slice(1) || !identity.capabilities.includes('recovery-file-import')) return;
+    nativeReleaseIdentity = identity;
+    render();
+  } catch {
+    // The browser demo and older development shells do not expose this command.
+  }
+}
 
 function bindEvents() {
   document.querySelectorAll<HTMLAnchorElement>('a[data-link]').forEach((link) => link.addEventListener('click', (event) => {
@@ -662,6 +683,7 @@ function bindEvents() {
 
 addEventListener('popstate', () => render({ announceRoute: true }));
 render();
+if (isTauri) void loadNativeReleaseIdentity();
 void (async () => {
   const accepted = await acceptLicenseFromUrl();
   const refreshed = accepted ? false : await refreshLicense();
