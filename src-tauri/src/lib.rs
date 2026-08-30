@@ -12,6 +12,8 @@ use std::{
 };
 use walkdir::WalkDir;
 
+const MEDIA_SAMPLE_LIMIT: usize = 48;
+
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct FileRecord {
@@ -250,7 +252,10 @@ fn scan(path: &Path, label: String) -> Result<TargetScan, String> {
         .map(|item| relative_path(item, path))
         .collect();
     sample_candidates.sort_by_key(|item| (sample_score(item), item.clone()));
-    let sampled_paths: HashSet<String> = sample_candidates.into_iter().take(48).collect();
+    let sampled_paths: HashSet<String> = sample_candidates
+        .into_iter()
+        .take(MEDIA_SAMPLE_LIMIT)
+        .collect();
     let mut files = Vec::with_capacity(paths.len());
 
     for item in paths {
@@ -381,7 +386,7 @@ mod tests {
     }
 
     #[test]
-    fn scan_hashes_at_most_forty_eight_media_files() {
+    fn claim_media_sample_count_checks_at_most_forty_eight_media_files() {
         let directory = tempfile::tempdir().unwrap();
         for index in 0..60 {
             image::DynamicImage::new_rgb8(1, 1)
@@ -389,14 +394,22 @@ mod tests {
                 .unwrap();
         }
         let result = scan(directory.path(), "Main archive".into()).unwrap();
-        assert_eq!(result.files.iter().filter(|file| file.sampled).count(), 48);
+        assert_eq!(
+            result.files.iter().filter(|file| file.sampled).count(),
+            MEDIA_SAMPLE_LIMIT
+        );
+        assert!(result
+            .files
+            .iter()
+            .filter(|file| file.sampled)
+            .all(|file| file.readable));
         assert_eq!(
             result
                 .files
                 .iter()
                 .filter(|file| file.hash.is_some())
                 .count(),
-            48
+            MEDIA_SAMPLE_LIMIT
         );
     }
 

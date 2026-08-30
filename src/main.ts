@@ -146,7 +146,7 @@ function landing() {
       <p class="eyebrow">Inside the desktop app</p><h2 id="walk-title">See the desktop check from folder choice to report</h2>
       <div class="walk-grid">
         <figure><div class="walk-frame"><b>1 · MAIN ARCHIVE</b><span>/Photos/Family</span><span class="mock-button" aria-hidden="true">Choose folder</span></div><figcaption>Choose folders. The app only reads them.</figcaption></figure>
-        <figure><div class="walk-frame"><b>2 · CHECK</b><span class="mini-route">●━━━━━━●</span><em>Reading 48 samples</em></div><figcaption>The app counts and tests both folders the same way.</figcaption></figure>
+        <figure><div class="walk-frame"><b>2 · CHECK</b><span class="mini-route">●━━━━━━●</span><em>Checking up to 48 media files</em></div><figcaption>The app counts and tests both folders the same way.</figcaption></figure>
         <figure><div class="walk-frame result-mini"><b>3 · REPORT</b><strong>1 item needs attention</strong><span>Export recovery file list</span></div><figcaption>Keep the recovery file list beside the archive.</figcaption></figure>
       </div>
     </section>

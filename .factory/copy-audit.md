@@ -1,6 +1,6 @@
-# Copy audit — polish round 3
+# Copy audit — perfection loop round 3
 
-Audited 2026-08-29 after the F-1-13 through F-1-25 rewrites. Hyphenated terms, file names, URLs, and version numbers count as one word. No sentence exceeds 22 words. No sentence contains a banned marketing word.
+Audited 2026-08-30 after the F-3-1 quantitative-claim repair and all earlier rewrites. Hyphenated terms, file names, URLs, and version numbers count as one word. No sentence exceeds 22 words. No sentence contains a banned marketing word.
 
 ## Landing page sentences
 
@@ -21,6 +21,7 @@ Audited 2026-08-29 after the F-1-13 through F-1-25 rewrites. Hyphenated terms, f
 | 11 | Save a recovery file list (JSON) and print plain recovery steps. |
 | 2 | Choose folders. |
 | 5 | The app only reads them. |
+| 6 | Checking up to 48 media files. |
 | 9 | The app counts and tests both folders the same way. |
 | 8 | Keep the recovery file list beside the archive. |
 | 12 | The app does not move, rename, edit, upload, or identify people in media. |
@@ -75,4 +76,4 @@ The README was checked sentence by sentence. Its longest sentence has 21 words. 
 | Paid entitlement | household license |
 | Isolated example | demo / sample data |
 
-Catalog description: “Check family photo and video copies before handing an archive to family.” (11 words, 72 characters.)
+Catalog description: “Check family photo and video copies before sharing an archive.” (9 words, 61 characters.)

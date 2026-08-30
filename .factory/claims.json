@@ -56,6 +56,13 @@
     "sandbox": "temporary archive with more than 48 valid media files; scan it twice and assert the exact sampled path set is identical"
   },
   {
+    "id": "media-sample-count",
+    "claim": "The desktop app checks up to 48 media files in each folder.",
+    "where": "landing walkthrough and desktop folder check",
+    "test": "cargo test --manifest-path src-tauri/Cargo.toml claim_media_sample_count",
+    "sandbox": "temporary archive with 60 valid media files; scan it and assert exactly 48 files are sampled, readable, and hashed"
+  },
+  {
     "id": "complete-file-count",
     "claim": "The app counts every file in each selected folder.",
     "where": "landing Read and compare step",
