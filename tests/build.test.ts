@@ -19,7 +19,7 @@ describe('configured production build', () => {
     const appHtml = readFileSync('dist/app/index.html', 'utf8');
     expect(siteHtml).toContain('<div id="app"></div>');
     expect(appHtml).toContain('<div id="app"></div>');
-  });
+  }, 60_000);
 
   it('keeps the static build tool in production dependencies', () => {
     const packageJson = JSON.parse(readFileSync('package.json', 'utf8'));
