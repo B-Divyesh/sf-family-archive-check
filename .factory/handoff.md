@@ -1,87 +1,28 @@
-# Family Archive Check — verification 9 handoff
-
-## Independent verifier verdict: PASS
-
-Candidate `5a55302d2482979ae06cf180ada91d4be1d2b5ca` was independently verified against <https://family-archive-check.sociobot.in> on 2026-08-30 UTC. All 32 required claims, `npm test` (27 Vitest + 33 Playwright), typecheck, lint, production build, native core tests, and normal Clippy passed. The live JS and CSS hashes equal the fresh candidate build; the production license endpoint enforced 10 requests per client per 10 minutes and returned `429` with `Retry-After` on request 11. No product defects were found.
-
-See [`.factory/verification-9.md`](verification-9.md) for exact commands, hashes, live privacy/accessibility evidence, release checksum verification, and the sole non-product environment note (missing GTK/GLib development headers prevent desktop-feature Clippy in this disposable container).
-
-No product code was changed during this verification.
-
----
-
-# Family Archive Check — perfection loop round 3 handoff
+# Family Archive Check — adversarial review 4 handoff
 
 ## Status
 
-Complete. The only new review-3 finding, F-3-1, is fixed, and every finding from reviews 1–3 was reverified. No known product gap remains in this work order.
+Review verdict: **FAIL** with one blocking and one minor finding. No product code was modified.
 
-- Implementation commit: `1b0b50e4d74b7414cb9eb42e8c90664f85d0f13d`
-- Static deployment: `60bea997-51a7-4e61-abee-221f5a33b7fe`
-- Live site: <https://family-archive-check.sociobot.in>
+- Blocking `F-4-1`: iPhone 13 and Pixel 5 contexts are told “Choose the installer for this device” and receive the Linux x86_64 AppImage. The platform claim test covers only mocked macOS.
+- Minor `F-4-2`: the landing purchase and detected download actions do not identify their external destinations.
 
-## What changed
+See `.factory/review-4.md` for exact evidence, complete copy/claim/history audits, and concrete fixes.
 
-- Reworded the landing walkthrough to “Checking up to 48 media files.”
-- Added the `media-sample-count` claim and a dedicated 60-file native scanner test.
-- Centralized the native sample limit as `MEDIA_SAMPLE_LIMIT` and proved 48 sampled files are readable and hashed.
-- Updated the copy audit and the verb-first, 62-character catalog description.
-- Rechecked and documented every historical finding in `.factory/polish-3.md`.
-- Added four cold-live evidence screenshots under `.factory/verification-artifacts/`.
+## Verification performed
 
-The art-deco transit-poster visual system, Tauri 2 desktop artifact, and static deployment class are unchanged.
+- Clean clone: `/tmp/fac-review4-clean.YwyVnv` at `e1106c00b28e9bd221aaf82284a7015a4c0732c8`.
+- All 32 exact `.factory/claims.json` commands passed independently; logs are `/tmp/fac-review4-claim-<id>.log`.
+- `npm test` passed: 27 Vitest and 33 Playwright tests.
+- `npm run build` passed and produced `dist/site` and `dist/app`.
+- Live cold checks covered 390×844, 1440×900, iPhone 13, and Pixel 5 contexts.
+- Live demo entry, Reset, export, Start for real, seeded-storage isolation, request logging, and offline reload passed.
+- Live Axe returned zero violations on all public routes and the designed 404.
+- All internal links returned their expected status; product-specific checkout behavior passed its claim test.
 
-## Verification
+## Next steps
 
-Clean clone: `/tmp/family-archive-check-polish-3-clean.RNA5r0` at `1b0b50e4d74b7414cb9eb42e8c90664f85d0f13d`.
-
-- All 32 exact `.factory/claims.json` commands passed independently.
-- `npm test`: 27 Vitest and 33 Playwright tests passed.
-- `npm run typecheck`, `npm run lint`, and `npm run build` passed; `dist/site` and `dist/app` were produced.
-- `cargo test --manifest-path src-tauri/Cargo.toml`: eight tests passed.
-- Both normal and `--features desktop` clippy runs passed with warnings denied.
-- GitHub quality run `33293365892` passed all jobs.
-- JavaScript is 15,022 bytes gzip, CSS is 4,407 bytes gzip, and the mobile hero is 40,942 bytes.
-
-## Cold live verification
-
-- All six public routes returned 200 with route-specific titles, descriptions, canonicals, one h1, one main, and the common shell.
-- Unknown general and print paths returned the designed HTTP 404.
-- Axe found zero serious or critical issues on every public route and the 404 at 390 px.
-- Standard routes produced no console errors. The real 404 produced only the browser’s expected failed-document 404 message.
-- The one-click home action entered `?demo=1` with 6/5 counts, the missing video, and the persistent demo banner.
-- Export, Reset demo, and Start for real left seeded real profiles and a sentinel byte-for-byte unchanged.
-- The entered demo flow made same-origin requests only, and `/demo` reloaded successfully offline.
-- Mobile and desktop first screens kept the audience, action, and all privacy/offline/price facts in the initial viewport.
-- Lighthouse mobile scored 99 performance, 100 accessibility, 100 best practices, and 100 SEO; LCP 1.4 s, CLS 0, TBT 90 ms.
-- The final crawl checked 16 links, including checkout, legal pages, Sociobot, and the Linux installer.
-
-Screenshots:
-
-- `.factory/verification-artifacts/polish-3-live-home-mobile.webp`
-- `.factory/verification-artifacts/polish-3-live-home-desktop.webp`
-- `.factory/verification-artifacts/polish-3-live-demo-mobile.webp`
-- `.factory/verification-artifacts/polish-3-live-not-found-desktop.webp`
-
-## Desktop release
-
-Release v0.1.9 remains current because this repair changes a landing walkthrough, documentation, and the test name/constant for unchanged scanner behavior. Its release contains macOS arm64/x64, Windows MSI/EXE, Linux AppImage/DEB/RPM, `SHA256SUMS`, and `latest.json`. All five manifest platform URLs are non-null. A downloaded DEB matched the published SHA-256 checksum.
-
-## Run and verify
-
-```sh
-npm ci --include=dev
-npm test
-npm run typecheck
-npm run lint
-npm run build
-cargo test --manifest-path src-tauri/Cargo.toml
-cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
-cargo clippy --manifest-path src-tauri/Cargo.toml --features desktop --all-targets -- -D warnings
-```
-
-Open `/demo` or `/?demo=1` for the isolated sample. Use **Reset demo** to restore it and **Start for real** to discard it.
-
-## Known gaps and operator action
-
-None for this repair. The current release and live deployment need no operator action.
+1. Add an explicit mobile state that does not offer a desktop installer.
+2. Expand `@claim:platform-download` across macOS, Windows, Linux, iOS, and Android.
+3. Mark both off-site landing actions as external in visible or accessible copy.
+4. Rerun review 4 from clean browser contexts and a clean clone.
