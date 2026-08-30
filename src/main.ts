@@ -15,7 +15,7 @@ const LICENSE_VERIFY_ENDPOINT = (__APP_BUILD__ || isTauri)
   ? `${SITE}/api/license/verify`
   : '/api/license/verify';
 const REAL_PROFILES_KEY = `${PRODUCT}:profiles`;
-const REQUIRED_RELEASE_TAG = 'v0.1.10';
+const REQUIRED_RELEASE_TAG = 'v0.1.11';
 const RELEASE_CACHE_KEY = `${PRODUCT}:release:${REQUIRED_RELEASE_TAG}`;
 const app = document.querySelector<HTMLDivElement>('#app')!;
 let nativeRoute = '/check';
@@ -127,7 +127,7 @@ function footer() {
   return `<footer class="site-footer">
     <p>Check family photo copies before handoff.</p>
     <nav aria-label="Footer navigation"><a href="/privacy" data-link>Privacy</a><a href="/terms" data-link>Terms</a><a href="https://sociobot.in" rel="external">Built by Param Factory <span class="sr-only">(external site)</span></a></nav>
-    <p id="release-identity"${source ? ` data-source-commit="${escapeHtml(source)}" data-capabilities="${escapeHtml(nativeReleaseIdentity!.capabilities.join(','))}"` : ''}>Version 0.1.10${build} · Generated art disclosed in the design notes.</p>
+    <p id="release-identity"${source ? ` data-source-commit="${escapeHtml(source)}" data-capabilities="${escapeHtml(nativeReleaseIdentity!.capabilities.join(','))}"` : ''}>Version 0.1.11${build} · Generated art disclosed in the design notes.</p>
   </footer>`;
 }
 

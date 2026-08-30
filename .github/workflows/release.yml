@@ -8,7 +8,7 @@ on:
       tag:
         description: Existing release tag to build
         required: true
-        default: v0.1.10
+        default: v0.1.11
 
 permissions:
   contents: write
@@ -120,7 +120,10 @@ jobs:
           grep -aF 'recovery-file-import' "$native_binary"
           grep -aF "$SOURCE_COMMIT" "$native_binary"
           find release-assets -maxdepth 1 -type f ! -name SHA256SUMS ! -name latest.json -printf '%f\0' | sort -z | xargs -0 -I{} sha256sum "release-assets/{}" | sed 's#release-assets/##' > SHA256SUMS
-          gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}" > release.json
+          gh api "repos/${GITHUB_REPOSITORY}/releases" --paginate > releases.json
+          release_id="$(jq -r --arg tag "$RELEASE_TAG" '.[] | select(.tag_name == $tag) | .id' releases.json | head -n 1)"
+          test -n "$release_id"
+          gh api "repos/${GITHUB_REPOSITORY}/releases/${release_id}" > release.json
           jq --arg source_commit "$SOURCE_COMMIT" --arg repository "$GITHUB_REPOSITORY" '{
             version: .tag_name,
             source_commit: $source_commit,

@@ -30,7 +30,7 @@ Audited 2026-08-30 after the versioned desktop release repair. Hyphenated terms,
 | 10 | Pay $29 once for unlimited checks and saved folder profiles. |
 | 12 | Dodo Payments takes your payment and handles questions or requests about your order. |
 | 6 | Check family photo copies before handoff. |
-| 9 | Version 0.1.10 · Generated art disclosed in the design notes. |
+| 9 | Version 0.1.11 · Generated art disclosed in the design notes. |
 
 Release-state copy is also within the limit: “Checking the latest release for this device.” (7), “Open this page on macOS, Windows, or Linux to install.” (10), “Downloads are being published.” (4), and “The release page shows current progress.” (7).
 

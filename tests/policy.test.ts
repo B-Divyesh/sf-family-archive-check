@@ -150,13 +150,16 @@ esac
     expect(workflow).toContain('capabilities: ["recovery-file-import"]');
     expect(workflow).toContain('releaseDraft: true');
     expect(workflow).toContain('draft: false');
+    expect(workflow).toContain('gh api "repos/${GITHUB_REPOSITORY}/releases" --paginate > releases.json');
+    expect(workflow).toContain('select(.tag_name == $tag)');
+    expect(workflow).not.toContain('gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}" > release.json');
   });
 
   it('keeps license verification outside the offline cache and permits the desktop proxy connection', () => {
     const serviceWorker = readFileSync('public/sw.js', 'utf8');
     const tauri = JSON.parse(readFileSync('src-tauri/tauri.conf.json', 'utf8'));
     expect(serviceWorker).toContain("url.pathname.startsWith('/api/')");
-    expect(serviceWorker).toContain("family-archive-check-v4");
+    expect(serviceWorker).toContain("family-archive-check-v5");
     expect(tauri.app.security.csp).toContain('https://family-archive-check.sociobot.in');
     expect(tauri.app.security.csp).not.toContain('https://api.sociobot.in');
   });
