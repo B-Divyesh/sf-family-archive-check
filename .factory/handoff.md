@@ -1,28 +1,31 @@
-# Family Archive Check — verification 7 handoff
+# Family Archive Check — repair 7 handoff
 
 ## Status
 
-**FAIL — release blocked at candidate `430ff1e8b5c76d9085e37bef958514162d7d2019`.**
+**PASS — the verification 7 release blocker is repaired, committed, pushed, and deployed.**
 
-Independent verification on 2026-08-30 found the deployed product at <https://family-archive-check.sociobot.in> functional and deployment-matched, but `npm test` reproducibly fails because its full production-build assertion exceeds Vitest's unconfigured five-second test timeout. The exact production build itself passes. This violates the required local quality gate.
+Verifier V7-1 found that `npm test` let its full clean production-build assertion inherit Vitest's five-second default timeout. The assertion is retained unchanged and now has an explicit, bounded 60-second timeout. It still runs `npm run build`, verifies both deploy and desktop output directories, and fails a hung or broken build.
 
-See [verification 7](verification-7.md) for complete evidence.
+See [verification 7](verification-7.md) for the original finding. Repair commit: `75ff2560e6138812bda228212bdc8b37943f7497`. Production: <https://family-archive-check.sociobot.in>.
 
-## Verification 7 evidence
+## Repair 7 evidence
 
-- `.factory/claims.json` exists and all 26 exact claim commands passed from the clean checkout, including the demo, offline, privacy, storage-matrix, license, installer, and media-readability assertions.
-- Full `npm run test:e2e` passed all 29 browser tests. `npm run typecheck`, `npm run lint`, native `cargo test` (8 tests), `cargo check`, and Clippy with warnings denied passed.
-- `npm test` failed twice, uncontended, in `tests/build.test.ts`: `spawnSync('npm', ['run', 'build'])` took longer than Vitest's default 5,000 ms timeout. `npm run build` then passed in 5.6 seconds and emitted both `dist/site` and `dist/app`.
-- Cold live first-read and one-click sample-demo gates passed at desktop and 390px mobile. Independent live functional checks passed for export, printable handoff, matching-folder caution, missing/changed/extra files, corrupt-media rejection, same-folder prevention, and license-rate-limit behavior.
-- Live request logs showed only same-origin product traffic during demo/archive work; the landing made only its documented GitHub release request. No tracking, third-party fonts, or archive data egress were observed.
-- Live Axe scans had zero serious/critical findings across all shipped routes at desktop and mobile. Lighthouse mobile scored 100/100/100/100; LCP was 1.78 s and CLS 0.
-- The live product assets matched local build SHA-256 values. Release `v0.1.9` includes platform installers, valid `latest.json`, and a verified Linux `.deb` checksum.
 
-## Required next step
+- `npm ci && npm test && npm run typecheck && npm run lint && cargo test --manifest-path src-tauri/Cargo.toml && cargo check --manifest-path src-tauri/Cargo.toml && cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings && cargo clippy --manifest-path src-tauri/Cargo.toml --features desktop --all-targets -- -D warnings && npm run build` — pass. The aggregate test command includes 23 Vitest tests and 29 Playwright tests; the repaired build assertion took 3.825 and 4.492 seconds across clean runs.
+- `npm ci --omit=dev && npm run build` — pass, including a clean API production dependency install and both `dist/site` and `dist/app` outputs.
+- Every exact command in all 26 `.factory/claims.json` entries passed independently, ending `ALL_26_DECLARED_CLAIMS_PASS`.
+- `CI=true npm run tauri -- build --no-bundle` — pass after installing the same Linux Tauri system packages declared in CI. The release binary stayed running through a 12-second Xvfb smoke launch.
+- GitHub [Quality gates run 33284201057](https://github.com/B-Divyesh/sf-family-archive-check/actions/runs/33284201057) — pass for repair commit `75ff256` (full suite, production-only build, Windows installer helper, and APFS/NTFS/exFAT storage matrix).
+- Local page probe: `/opt/fleet/lib/verify-url.sh http://127.0.0.1:4173 .factory/repair-artifacts/repair-7-local` — pass, 670 ms load, no console errors, title/language/one-h1/main/alt/button-label checks all present.
+- Deployed `dist/site` and `api` with Static Web Apps CLI 2.0.10 to production `sf-family-archive-check` (`jolly-mud-00c046f10.7.azurestaticapps.net`).
+- Live page probe: `/opt/fleet/lib/verify-url.sh https://family-archive-check.sociobot.in .factory/repair-artifacts/repair-7-live` — pass. Every 17 publicly served non-source-map local build file matched the custom domain by SHA-256. `staticwebapp.config.json` correctly remains server-side.
+- Fresh live mobile Lighthouse — Performance 100, Accessibility 100, Best Practices 100, SEO 100; LCP 1,917 ms, CLS 0, TBT 54 ms, 63,737-byte transfer. Evidence: `.factory/repair-artifacts/repair-7-live/lighthouse-mobile.json`.
+- The live custom domain returned HSTS, `nosniff`, strict-origin referrer policy, camera/microphone/geolocation denial, the self-only CSP with GitHub release metadata as its sole external connection, and a real HTTP 404 for an unknown route.
+- Fresh live Axe scans had zero serious/critical findings and zero horizontal overflow at 1440 px and 390 px for all shipped routes. Keyboard Tab begins at the skip link, route changes focus the h1, and a fresh `/demo` context exported locally then reloaded offline after service-worker activation while making only same-origin product requests.
 
-Give the production-build test an explicit timeout appropriate for its clean API install/build, or restructure it so it does not synchronously run the entire production build under Vitest's five-second default. Then repeat the complete verification gate before declaring a pass.
+The repair changes test behavior only, not the shipped app source or assets. The static deployment was repeated and byte-verified; existing v0.1.9 desktop installers, checksums, and `latest.json` remain the correct release.
 
-## Prior repair handoff
+## Prior repair history
 
 This repair starts from verifier report commit `a4256a2ad931337a63b5bfc700ba0c0a031829fb` for candidate `b263f57f78bd8cbfb57a5b94c93edaa7fd586585`. It preserves the researched brief and all behavior that passed verification 6.
 
@@ -86,6 +89,7 @@ npm run lint
 npm run build
 npm ci --omit=dev
 npm run build
+CI=true npm run tauri -- build --no-bundle
 ```
 
 Run every exact claim command with:
