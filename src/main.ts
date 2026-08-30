@@ -28,8 +28,29 @@ let busy = false;
 let scanError = '';
 
 interface FolderProfile { main: string; backup: string; savedAt: string }
+type VisitorPlatform = 'mobile' | 'windows' | 'mac' | 'linux' | 'other';
 
 const escapeHtml = (value: unknown) => String(value).replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character]!);
+
+function visitorPlatform(): VisitorPlatform {
+  const navigatorWithHints = navigator as Navigator & { userAgentData?: { mobile?: boolean } };
+  const userAgent = navigator.userAgent;
+  const platform = navigator.platform;
+  const isAppleMobile = /iPhone|iPad|iPod/i.test(userAgent) || (/Mac/i.test(platform) && navigator.maxTouchPoints > 1);
+  if (navigatorWithHints.userAgentData?.mobile || /Android/i.test(userAgent) || isAppleMobile) return 'mobile';
+  if (/Win/i.test(platform)) return 'windows';
+  if (/Mac/i.test(platform)) return 'mac';
+  if (/Linux|X11/i.test(platform)) return 'linux';
+  return 'other';
+}
+
+function externalActionLabel(element: HTMLAnchorElement, label: string) {
+  element.replaceChildren(label, Object.assign(document.createElement('span'), {
+    className: 'sr-only',
+    textContent: ' (external site)'
+  }));
+  element.rel = 'external';
+}
 
 function routePath() {
   if (__APP_BUILD__ || isTauri) return nativeRoute;
@@ -109,6 +130,12 @@ function shell(active: string, content: string, demo = false) {
 }
 
 function landing() {
+  const platform = visitorPlatform();
+  const needsDesktop = platform === 'mobile' || platform === 'other';
+  const downloadCopy = needsDesktop
+    ? 'Open this page on macOS, Windows, or Linux to install.'
+    : 'Checking the latest release for this device…';
+  const downloadAction = needsDesktop ? 'View desktop releases' : 'View releases';
   return shell('home', `
     <section class="hero poster-section">
       <div class="hero-copy">
@@ -153,9 +180,9 @@ function landing() {
     <section class="boundaries" aria-labelledby="privacy-title"><div><p class="eyebrow">Read-only by default</p><h2 id="privacy-title">Your folders stay unchanged</h2></div><div><p>The app does not move, rename, edit, upload, or identify people in media.</p><p>Keep an independent backup and test recovery yourself.</p><p>Only an exported recovery file list writes a new file.</p></div></section>
     <section class="purchase" aria-labelledby="price-title">
       <div><p class="eyebrow">Household license</p><h2 id="price-title">Check archives larger than 500 files</h2><p>Pay $29 once for unlimited checks and saved folder profiles.</p></div>
-      <div><a class="button gold" href="https://api.sociobot.in/api/v1/products/family-archive-check/checkout">Buy household license — $29</a><button class="text-button" id="show-license">Enter license token</button><p class="fine-print">Dodo Payments takes your payment and handles questions or requests about your order.</p></div>
+      <div><a class="button gold" href="https://api.sociobot.in/api/v1/products/family-archive-check/checkout" rel="external">Buy household license — $29 <span class="sr-only">(external site)</span></a><button class="text-button" id="show-license">Enter license token</button><p class="fine-print">Dodo Payments takes your payment and handles questions or requests about your order.</p></div>
     </section>
-    <section class="download-band" aria-labelledby="download-title"><div><p class="eyebrow">Desktop app</p><h2 id="download-title">Install for full folder checks</h2><p id="download-copy">Checking the latest release for this device…</p></div><a class="button primary" id="download-button" href="https://github.com/${REPO}/releases">View releases</a></section>
+    <section class="download-band" aria-labelledby="download-title"><div><p class="eyebrow">Desktop app</p><h2 id="download-title">Install for full folder checks</h2><p id="download-copy">${downloadCopy}</p></div><a class="button primary" id="download-button" href="https://github.com/${REPO}/releases" rel="external">${downloadAction} <span class="sr-only">(external site)</span></a></section>
     <div class="license-panel" id="license-panel" hidden><label for="license-token">License token</label><div><input id="license-token" autocomplete="off" /><button id="save-license">Verify license</button></div><p id="license-status" role="status"></p></div>
   `);
 }
@@ -545,6 +572,12 @@ async function loadRelease() {
   const copy = document.querySelector('#download-copy');
   const button = document.querySelector<HTMLAnchorElement>('#download-button');
   if (!copy || !button) return;
+  const platform = visitorPlatform();
+  if (platform === 'mobile' || platform === 'other') {
+    copy.textContent = 'Open this page on macOS, Windows, or Linux to install.';
+    externalActionLabel(button, 'View desktop releases');
+    return;
+  }
   try {
     const key = 'family-archive-check:release';
     const saved = JSON.parse(localStorage.getItem(key) ?? 'null') as { time: number; release: Release } | null;
@@ -555,15 +588,14 @@ async function loadRelease() {
       return releases[0];
     });
     if (!saved || saved.release.tag_name !== release.tag_name) localStorage.setItem(key, JSON.stringify({ time: Date.now(), release }));
-    const platform = /Win/.test(navigator.platform) ? 'windows' : /Mac/.test(navigator.platform) ? 'mac' : 'linux';
     const match = release.assets.find((asset) => platform === 'windows' ? /\.(msi|exe)$/i.test(asset.name) : platform === 'mac' ? /\.(dmg|app\.tar\.gz)$/i.test(asset.name) : /\.(AppImage|deb)$/i.test(asset.name));
     if (!match) throw new Error('platform asset unavailable');
     button.href = match.browser_download_url;
-    button.textContent = `Download for ${platform === 'mac' ? 'macOS' : platform === 'windows' ? 'Windows' : 'Linux'}`;
+    externalActionLabel(button, `Download for ${platform === 'mac' ? 'macOS' : platform === 'windows' ? 'Windows' : 'Linux'}`);
     copy.textContent = `${release.tag_name} is ready. Choose the installer for this device.`;
   } catch {
     copy.textContent = 'Downloads are being published. The release page shows current progress.';
-    button.textContent = 'View release page';
+    externalActionLabel(button, 'View release page');
   }
 }
 

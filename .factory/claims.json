@@ -120,10 +120,10 @@
   },
   {
     "id": "platform-download",
-    "claim": "Links the detected desktop platform to its release asset.",
-    "where": "landing download section and README",
+    "claim": "Links each detected desktop platform to its matching release asset and does not offer desktop installers on phones.",
+    "where": "landing download section and README desktop-platform list",
     "test": "npm run test:e2e -- --grep @claim:platform-download",
-    "sandbox": "fresh browser context reporting macOS with a recorded GitHub release response; assert the DMG download URL"
+    "sandbox": "five fresh browser contexts reporting macOS, Windows, Linux, iOS, and Android; assert each desktop asset, no phone download, and an external desktop-release link on phones"
   },
   {
     "id": "demo-isolation",

@@ -157,6 +157,8 @@ test('@claim:paid-license unlocks a 501-file check and a reusable saved profile'
   await page.goto('/');
   const link = page.getByRole('link', { name: 'Buy household license — $29' });
   await expect(link).toHaveAttribute('href', 'https://api.sociobot.in/api/v1/products/family-archive-check/checkout');
+  await expect(link).toHaveAttribute('rel', 'external');
+  await expect(link).toHaveAccessibleName('Buy household license — $29 (external site)');
   await expect(page.getByText('Pay $29 once for unlimited checks and saved folder profiles.')).toBeVisible();
   await page.goto('/check');
   await page.getByRole('button', { name: 'Choose and read main archive' }).click();
@@ -378,17 +380,67 @@ test('a multi-item result names the true issue count in its heading and status',
   }
 });
 
-test('@claim:platform-download links a detected platform to a release asset', async ({ page }) => {
-  await page.addInitScript(() => Object.defineProperty(navigator, 'platform', { get: () => 'MacIntel' }));
-  await page.route('https://api.github.com/repos/B-Divyesh/sf-family-archive-check/releases?per_page=1', (route) => route.fulfill({
-    status: 200,
-    contentType: 'application/json',
-    body: JSON.stringify([{ tag_name: 'v0.1.1', assets: [{ name: 'Family.Archive.Check_0.1.1_aarch64.dmg', browser_download_url: 'https://example.test/family-archive-check.dmg' }] }])
-  }));
-  await page.goto('/');
-  const download = page.getByRole('link', { name: 'Download for macOS' });
-  await expect(download).toHaveAttribute('href', 'https://example.test/family-archive-check.dmg');
-  await expect(page.getByText('v0.1.1 is ready. Choose the installer for this device.')).toBeVisible();
+test('@claim:platform-download links every desktop platform and protects phones from incompatible downloads', async ({ browser }) => {
+  const assets = [
+    { name: 'Family.Archive.Check_0.1.1_aarch64.dmg', browser_download_url: 'https://example.test/family-archive-check.dmg' },
+    { name: 'Family.Archive.Check_0.1.1_x64-setup.exe', browser_download_url: 'https://example.test/family-archive-check.exe' },
+    { name: 'Family.Archive.Check_0.1.1_amd64.AppImage', browser_download_url: 'https://example.test/family-archive-check.AppImage' }
+  ];
+  const desktopCases = [
+    { platform: 'MacIntel', userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)', label: 'macOS', url: assets[0].browser_download_url },
+    { platform: 'Win32', userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)', label: 'Windows', url: assets[1].browser_download_url },
+    { platform: 'Linux x86_64', userAgent: 'Mozilla/5.0 (X11; Linux x86_64)', label: 'Linux', url: assets[2].browser_download_url }
+  ];
+
+  for (const desktop of desktopCases) {
+    const context = await browser.newContext({ userAgent: desktop.userAgent });
+    try {
+      await context.addInitScript((platform) => Object.defineProperty(navigator, 'platform', { get: () => platform }), desktop.platform);
+      const page = await context.newPage();
+      await page.route('https://api.github.com/repos/B-Divyesh/sf-family-archive-check/releases?per_page=1', (route) => route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([{ tag_name: 'v0.1.1', assets }])
+      }));
+      await page.goto('/');
+      const download = page.getByRole('link', { name: `Download for ${desktop.label} (external site)` });
+      await expect(download).toHaveAttribute('href', desktop.url);
+      await expect(download).toHaveAttribute('rel', 'external');
+      await expect(page.getByText('v0.1.1 is ready. Choose the installer for this device.')).toBeVisible();
+    } finally {
+      await context.close();
+    }
+  }
+
+  const phoneCases = [
+    { platform: 'iPhone', userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148' },
+    { platform: 'Linux armv8l', userAgent: 'Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 Mobile Safari/537.36' }
+  ];
+  for (const phone of phoneCases) {
+    const context = await browser.newContext({
+      userAgent: phone.userAgent,
+      viewport: { width: 390, height: 844 },
+      hasTouch: true,
+      isMobile: true
+    });
+    try {
+      await context.addInitScript((platform) => Object.defineProperty(navigator, 'platform', { get: () => platform }), phone.platform);
+      const page = await context.newPage();
+      const releaseRequests: string[] = [];
+      page.on('request', (request) => {
+        if (request.url().startsWith('https://api.github.com/')) releaseRequests.push(request.url());
+      });
+      await page.goto('/');
+      await expect(page.getByText('Open this page on macOS, Windows, or Linux to install.')).toBeVisible();
+      const releases = page.getByRole('link', { name: 'View desktop releases (external site)' });
+      await expect(releases).toHaveAttribute('href', 'https://github.com/B-Divyesh/sf-family-archive-check/releases');
+      await expect(releases).toHaveAttribute('rel', 'external');
+      await expect(page.getByRole('link', { name: /^Download for/ })).toHaveCount(0);
+      expect(releaseRequests).toEqual([]);
+    } finally {
+      await context.close();
+    }
+  }
 });
 
 test('@claim:recovery-import imports a recovery file list and checks a restored folder', async ({ page }) => {

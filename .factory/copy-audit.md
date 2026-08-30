@@ -1,6 +1,6 @@
-# Copy audit — perfection loop round 3
+# Copy audit — perfection loop round 4
 
-Audited 2026-08-30 after the F-3-1 quantitative-claim repair and all earlier rewrites. Hyphenated terms, file names, URLs, and version numbers count as one word. No sentence exceeds 22 words. No sentence contains a banned marketing word.
+Audited 2026-08-30 after the phone-download and external-destination repairs. Hyphenated terms, file names, URLs, and version numbers count as one word. No sentence exceeds 22 words. No sentence contains a banned marketing word.
 
 ## Landing page sentences
 
@@ -22,7 +22,7 @@ Audited 2026-08-30 after the F-3-1 quantitative-claim repair and all earlier rew
 | 2 | Choose folders. |
 | 5 | The app only reads them. |
 | 6 | Checking up to 48 media files. |
-| 9 | The app counts and tests both folders the same way. |
+| 10 | The app counts and tests both folders the same way. |
 | 8 | Keep the recovery file list beside the archive. |
 | 12 | The app does not move, rename, edit, upload, or identify people in media. |
 | 8 | Keep an independent backup and test recovery yourself. |
@@ -32,7 +32,9 @@ Audited 2026-08-30 after the F-3-1 quantitative-claim repair and all earlier rew
 | 6 | Check family photo copies before handoff. |
 | 9 | Version 0.1.9 · Generated art disclosed in the design notes. |
 
-Transient release copy is also within the limit: “Checking the latest release for this device.” (7), “Downloads are being published.” (4), and “The release page shows current progress.” (7).
+Release-state copy is also within the limit: “Checking the latest release for this device.” (7), “Open this page on macOS, Windows, or Linux to install.” (10), “Downloads are being published.” (4), and “The release page shows current progress.” (7).
+
+The purchase and release actions append “(external site)” to their accessible names and use `rel="external"`. Phone visitors see “View desktop releases,” never a desktop download action.
 
 ## App, demo, legal, and error sentences
 
@@ -78,4 +80,4 @@ The README was checked sentence by sentence. Its longest sentence has 21 words. 
 
 “Checking up to 48 media files” is registered as `media-sample-count` and proved by a 60-file native scan.
 
-Catalog description: “Check family photo and video copies before sharing an archive.” (10 words, 62 characters.)
+Catalog description: “Check family photos and videos against an independent copy before handoff.” (11 words, 74 characters.)
