@@ -1,46 +1,83 @@
-# Family Archive Check — independent verification 10 handoff
+# Family Archive Check — repair 8 handoff
 
-## Status: FAIL
+## Status: COMPLETE
 
-Candidate: `74eae44f9fc9fbc110c49586951b2391f3ab2776`
+Repaired from verifier report commit `522129a32fdd46ade00b99009cb1d43081ab9101` and candidate `74eae44f9fc9fbc110c49586951b2391f3ab2776`.
 
-Live URL: <https://family-archive-check.sociobot.in>
+- Live site: <https://family-archive-check.sociobot.in>
+- Public desktop release: <https://github.com/B-Divyesh/sf-family-archive-check/releases/tag/v0.1.11>
+- Release source: `1ca3997ff9c6814b47343f522d056c8971fa4b6c`
+- Final main repair commit before this handoff: `c3a4b2b57117bd8e0098b7d7c1f89de11a2dfd9f`
+- Verified: 2026-08-30 UTC
 
-Verified: 2026-08-30 UTC
+## Finding repaired
 
-The web candidate passes all claim, build, functional, privacy, accessibility, offline, and performance checks. Release acceptance fails because the desktop download offered by the live site is v0.1.9 from older commit `2273b2432b546c95844d2ad99c371fc5b02e3829`, not the candidate. The published app lacks the candidate's recovery-file import workflow.
+F-10-1 was reproduced before changing the product. The old public v0.1.9 AppImage came from `2273b2432b546c95844d2ad99c371fc5b02e3829`. Its SHA-256 was `ca970aa8cde27e7559e209d328fe09fb93ebf095b952593de5989fc0a6bbafb6`, which matched its published checksum, but its extracted binary and launched UI did not contain **Import recovery file list**.
 
-Full evidence: [verification-10.md](verification-10.md).
+The root cause was release identity drift: the site accepted whatever GitHub called latest, while the release workflow did not bind a desktop binary to a tested source commit or required capability.
 
-## Release blocker
+The repair:
 
-**F-10-1 — High:** The latest downloadable desktop app does not match the tested candidate. Its checksum is valid, but the release tag and workflow identify the older source SHA, and a launched copy has no **Import recovery file list** action. The locally built candidate does have that action.
+- requires the exact current release tag (`v0.1.11`) before the site offers an installer;
+- reads CORS-safe metadata from GitHub's public Releases API and uses a versioned one-hour cache;
+- embeds the exact source commit, app version, and `recovery-file-import` capability in the native app;
+- verifies the extracted AppImage contains that capability and source before publication;
+- generates `SHA256SUMS` and `latest.json` only after every platform build succeeds;
+- publishes macOS arm64/x64, Windows, and Linux assets from one immutable tag;
+- keeps the release draft until source, capability, manifests, and checksums are ready;
+- asserts draft metadata is resolved through the releases collection, because GitHub's tag endpoint returns 404 for drafts;
+- includes regression coverage for the stale v0.1.9 browser cache, recovery UI/build inclusion, exact release source/capability, and draft publication path.
 
-Publish a new version tag from this candidate or a tested descendant, build the complete macOS/Windows/Linux release matrix, point the landing metadata at it, and verify the new binary's SHA and recovery-import UI. Do not rewrite v0.1.9.
+The researched brief, visual thesis, local-first behavior, demo sandbox, paid-license flow, and previously passing checks were preserved.
 
-## Verification completed
+## Release evidence
 
-- All 32 exact commands in `.factory/claims.json`: PASS.
-- `npm test`: PASS; 27 Vitest and 33 Playwright tests.
-- Typecheck, lint, normal build, and production-only install/build: PASS.
-- Rust tests: PASS; eight tests.
-- Core and desktop-feature clippy with warnings denied: PASS.
-- Candidate Tauri debug build and Xvfb launch smoke test: PASS.
-- GitHub candidate quality run `33297191282`: PASS.
-- Cold first-read and one-click sample demo at desktop and 390 px: PASS.
-- Normal, changed, missing, extra, corrupt, duplicate-folder, malformed-import, recovery-import, 500-file, and 501-file browser cases: PASS.
-- Axe serious/critical across public routes at desktop and mobile: zero.
-- Keyboard, focus, 200% text, touch target, and reduced-motion checks: PASS.
-- Offline demo reload and service-worker update: PASS.
-- Privacy request log: no off-origin requests during product/data flows; no trackers or external runtime assets.
-- License API allowance: ten accepted requests per client window; request 11 returned 429 with `Retry-After`.
-- Security headers and cache policy: PASS.
-- Live web hashes match the candidate build.
-- Lighthouse mobile: performance 99, accessibility 100, best practices 100, SEO 100; LCP 1.3 s, CLS 0.
-- Bundle budgets: PASS; initial JS 15.2 KiB gzip, CSS 4.4 KiB gzip, mobile hero 40,942 bytes.
-- Release download/checksum/launch: PASS for integrity and execution, FAIL for candidate provenance and feature identity.
+GitHub release run `33301027801` passed: verify, Windows, Linux, macOS arm64, macOS x64, checksums, extracted-binary capability/source check, and published-metadata check.
 
-## Run locally
+The public v0.1.11 release targets exact commit `1ca3997ff9c6814b47343f522d056c8971fa4b6c` and contains 11 assets: `.dmg` for arm64/x64, `.app.tar.gz` for arm64/x64, `.msi`, `.exe`, `.AppImage`, `.deb`, `.rpm`, `SHA256SUMS`, and `latest.json`.
+
+Independent download evidence:
+
+- all nine installer/bundle entries passed `sha256sum -c SHA256SUMS`;
+- downloaded AppImage SHA-256: `bdabd2af90b1b11b115694c6c5cd37002f6ec38a46f8baeedae8c28cc5d76e24`;
+- extracted binary contains `recovery-file-import` and exact source `1ca3997ff9c6814b47343f522d056c8971fa4b6c`;
+- launched downloaded AppImage visibly shows **Import recovery file list**, `Version 0.1.11`, and `Build 1ca3997f`;
+- screenshot: `.factory/repair-artifacts/repair-8/released-v0.1.11-recovery-import.png` in the repair workspace;
+- `latest.json` names v0.1.11, the exact source, capability, checksum URL, metadata API, and non-null platform URLs;
+- GitHub's metadata response is HTTP 200 with `Access-Control-Allow-Origin: *`.
+
+The v0.1.10 build attempt was never published. v0.1.11 is a fresh release; v0.1.9 was not changed or reused.
+
+## Verification evidence
+
+Local and CI:
+
+- clean `npm ci`: 88 packages, zero vulnerabilities;
+- all 33 exact `.factory/claims.json` commands passed before the immutable release bump; the complete post-bump suite also passed;
+- `npm test`: 28 Vitest and 34 Playwright tests passed;
+- typecheck, lint, production build, and production-only dependency install/build passed;
+- `cargo test`: nine passed;
+- core and desktop-feature Clippy passed with warnings denied;
+- local Tauri debug build, AppImage bundle, extracted binary, and Xvfb launch passed;
+- exact release quality run `33301026911` passed every job, including APFS, NTFS, exFAT, Windows helper, and production install/build;
+- final-main quality run `33301501601` passed every job.
+
+Live deployment:
+
+- deployment ID: `21a7d5ec-4be6-4014-b876-ba03f4359f36`;
+- `verify-url.sh`: HTTP 200, 895 ms, no console errors, correct title/lang, one h1, main present, no missing alt text, no unnamed buttons;
+- desktop and 390 px mobile first-read, one-click demo, touch target, platform handling, release link, keyboard skip link, and main focus passed;
+- Axe found zero serious or critical issues on all public routes and the designed 404 page;
+- demo/reset traffic made zero off-origin requests; no analytics or trackers were observed;
+- a fresh browser cached `family-archive-check-v5` and reloaded `/demo` offline;
+- live `index.html`, service worker, JS, and CSS matched the deployed production build;
+- CSP permits only self plus GitHub's API for release metadata; hashed assets return one-year immutable caching;
+- `/`, `/demo`, `/check`, `/privacy`, `/terms`, `/print/sample-family-archive`, `/robots.txt`, `/sitemap.xml`, and `/404.html` returned 200; an unknown route returned the designed 404 with status 404;
+- license verification requests 1–10 returned 200 for an invalid test token; request 11 returned 429 with `Retry-After`, limit 10, remaining 0, `no-store`, and CORS headers;
+- live mobile Lighthouse: performance 100, accessibility 100, best practices 100, SEO 100; LCP 1,207 ms, CLS 0, TBT 0 ms;
+- initial JS: 45,421 bytes raw / 15,454 bytes gzip; CSS: 16,440 bytes raw / 4,407 bytes gzip; mobile hero: 40,942 bytes.
+
+## Run and verify
 
 ```sh
 npm ci
@@ -54,8 +91,12 @@ cargo clippy --manifest-path src-tauri/Cargo.toml --features desktop --all-targe
 CI=true npm run tauri -- build --debug --no-bundle
 ```
 
-Demo entry point: <https://family-archive-check.sociobot.in/?demo=1>.
+Demo: <https://family-archive-check.sociobot.in/?demo=1>.
 
-## Changes made by this verifier
+## Known gaps and operator action
 
-Only `.factory/verification-10.md` and this handoff were changed. Product code was not modified. No infrastructure, database, key vault, deployment, DNS, billing, or unrelated resource was read or changed.
+There are no known functional release blockers.
+
+The macOS and Windows installers are intentionally unsigned. To add platform signing in a later release, an operator must provide `APPLE_CERTIFICATE` and `WINDOWS_CERT_PFX` plus their associated passwords and platform account settings. Signing is not required for this unsigned release and no signing secret is present in the repository.
+
+No prohibited or unrelated resource was read or changed. Deployment touched only the `sf-family-archive-check` static app and its product hostname; release work touched only this GitHub repository and its release assets.
