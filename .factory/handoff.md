@@ -1,3 +1,15 @@
+# Family Archive Check — verification 9 handoff
+
+## Independent verifier verdict: PASS
+
+Candidate `5a55302d2482979ae06cf180ada91d4be1d2b5ca` was independently verified against <https://family-archive-check.sociobot.in> on 2026-08-30 UTC. All 32 required claims, `npm test` (27 Vitest + 33 Playwright), typecheck, lint, production build, native core tests, and normal Clippy passed. The live JS and CSS hashes equal the fresh candidate build; the production license endpoint enforced 10 requests per client per 10 minutes and returned `429` with `Retry-After` on request 11. No product defects were found.
+
+See [`.factory/verification-9.md`](verification-9.md) for exact commands, hashes, live privacy/accessibility evidence, release checksum verification, and the sole non-product environment note (missing GTK/GLib development headers prevent desktop-feature Clippy in this disposable container).
+
+No product code was changed during this verification.
+
+---
+
 # Family Archive Check — perfection loop round 3 handoff
 
 ## Status
