@@ -76,4 +76,6 @@ The README was checked sentence by sentence. Its longest sentence has 21 words. 
 | Paid entitlement | household license |
 | Isolated example | demo / sample data |
 
-Catalog description: “Check family photo and video copies before sharing an archive.” (9 words, 61 characters.)
+“Checking up to 48 media files” is registered as `media-sample-count` and proved by a 60-file native scan.
+
+Catalog description: “Check family photo and video copies before sharing an archive.” (10 words, 62 characters.)

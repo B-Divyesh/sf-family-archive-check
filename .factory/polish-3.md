@@ -1,65 +1,74 @@
-# Polish round 3 — complete finding closure
+# Perfection loop round 3 — complete finding closure
 
-Released candidate reviewed: `627d41b1b5043c68f88702c297bcb12555760470`  
-Review sources: `.factory/review-1.md` and `.factory/review-2.md`  
-Repair scope: all historical findings, including `V8-1`, plus the controller's deterministic-preview-server finding.
+- Released candidate: `4c2cc445cdef25f4f3ceddec7452231a6b702d27`
+- Adversarial report: `cfa6bf029ac05bc7c7de19ac0a4df09212cb44a8` / `.factory/review-3.md`
+- Repair implementation: `1b0b50e4d74b7414cb9eb42e8c90664f85d0f13d`
+- Deployment: `60bea997-51a7-4e61-abee-221f5a33b7fe`
 
-The product fixes from the first two rounds are retained and rechecked below. This round makes the full browser suite deterministic: every npm test command and Playwright web server starts by stopping only an orphaned FAC Vite/test server on port 4173, then Playwright builds and owns a fresh server (`reuseExistingServer: false`). The two offline/reload tests now create and close only their own browser context.
+## Review 3 finding
+
+| Finding | Change made | Evidence |
+|---|---|---|
+| F-3-1 | Replaced the misleading exact progress phrase with “Checking up to 48 media files.” Added `media-sample-count` to `.factory/claims.json`, centralized the native limit, and dedicated a test that scans 60 valid images and proves 48 are sampled, readable, and hashed. | `cargo test --manifest-path src-tauri/Cargo.toml claim_media_sample_count`; clean-clone log `/tmp/family-archive-check-polish-3-media-sample-count.log`; live text at `/`; [live desktop screenshot](verification-artifacts/polish-3-live-home-desktop.webp). |
 
 ## Review 1 findings
 
-| Finding | Change retained or made | Evidence |
+| Finding | Change retained and reverified | Evidence |
 |---|---|---|
-| F-1-1 | The licensed native fixture rejects 501 unlicensed files, accepts a recorded valid license, saves, reloads, and reuses a profile. | `@claim:paid-license` |
-| F-1-2 | The sample handoff test asserts its heading, four recovery steps, both locations, result, and print action. | `@claim:handoff-sheet`; `repair-artifacts/polish-3-local/demo-mobile.png` |
-| F-1-3 | Shell checksum cases run locally and the checked-in Windows PowerShell harness covers valid and tampered downloads. | `@claim:installer-checksum`; `tests/installers.ps1` |
-| F-1-4 | Demo state remains in memory and the test compares seeded real storage byte-for-byte through export, reset, and exit. | `@claim:demo-isolation` |
-| F-1-5 | Payment copy names Dodo Payments and the checkout-policy test follows the live checkout. | `@claim:payment-policy`; live checkout check |
-| F-1-6 | Recovery export and accessibility remain usable without a license. | `@claim:free-exports`; `@claim:accessibility-not-gated` |
-| F-1-7 | Landing and demo show and assert six main-archive items and five independent-copy items. | `@claim:demo-ready`; `repair-artifacts/polish-3-local/demo-mobile.png` |
-| F-1-8 | The no-people-identification boundary is plain and policy-tested against dependencies, source, and permissions. | `@claim:no-face-recognition` |
-| F-1-9 | The compact hero keeps its audience, action, and all privacy/offline/price facts within 390×844 and 1440×900. | Browser tests `mobile layout keeps actions inside the viewport` and `desktop first screen keeps its audience and primary action visible`; local screenshots |
-| F-1-10 | Each public route sets route-specific title, description, canonical, Open Graph, and Twitter data. | Browser test `every public route publishes its own title, description, canonical, and social metadata` |
-| F-1-11 | The public sample handoff is listed in `sitemap.xml`. | `public/sitemap.xml`; local `200 /print/sample-family-archive` check |
-| F-1-12 | The static HTTP 404 has the same semantic shell, navigation, footer, and poster identity. | Browser test `unknown routes return 404 and hashed assets are immutable`; `repair-artifacts/polish-3-local/not-found-desktop.png` |
-| F-1-13 | The process explanation says counts, opening a sample, and changed files instead of technical validation/hash jargon. | `.factory/copy-audit.md`; local landing screenshot |
-| F-1-14 | `main archive`, `independent copy`, and `recovery file list` are the only public terms for these concepts. | Policy test `uses main archive, independent copy, and recovery file list consistently` |
-| F-1-15 | The walkthrough says both folders are counted and tested the same way. | `.factory/copy-audit.md`; local landing screenshot |
-| F-1-16 | The disclosure control says `Enter license token` and reveals the token field. | Browser keyboard coverage; `@claim:paid-license` |
-| F-1-17 | README says archive data stays on the computer. | `.factory/copy-audit.md` |
-| F-1-18 | README describes the same repeatable sample users see. | `.factory/copy-audit.md`; `@claim:repeatable-sample` |
-| F-1-19 | README calls the optional helpers terminal downloads. | `.factory/copy-audit.md` |
-| F-1-20 | Visitor copy explains an unchanged download; SHA-256 appears only in the developer note. | `.factory/copy-audit.md`; `@claim:installer-checksum` |
-| F-1-21 | Folder choice wording says connected drive or network folder. | README and browser picker; `@claim:independent-folders` |
-| F-1-22 | README names the website/desktop drive-identification difference directly. | README copy audit; browser picker |
-| F-1-23 | README says `Build the deployable static site`. | `.factory/copy-audit.md` |
-| F-1-24 | Privacy copy calls Sociobot the license service, not an API. | `@claim:license-privacy` |
-| F-1-25 | The unsupported unsigned-preview statement was removed rather than left as an untested promise. | `@claim:platform-download`; exact-copy search |
+| F-1-1 | A recorded valid entitlement enables a 501-file check, profile save, reload, and reuse; the same flow proves the unlicensed boundary. | `@claim:paid-license`; clean-clone claim pass; live `/check`. |
+| F-1-2 | The handoff claim asserts the heading, four recovery steps, both locations, result, and Print action. | `@claim:handoff-sheet`; live `/print/sample-family-archive`. |
+| F-1-3 | Shell valid/tampered cases execute locally; the Windows PowerShell harness executes both cases in CI. | `@claim:installer-checksum`; quality run `33293365892`; v0.1.9 DEB matched `SHA256SUMS`. |
+| F-1-4 | Demo state stays in memory. The test and live audit preserve seeded real profiles and a sentinel through export, reset, and exit. | `@claim:demo-isolation`; live one-click storage audit; [live demo screenshot](verification-artifacts/polish-3-live-demo-mobile.webp). |
+| F-1-5 | Payment wording names Dodo Payments and is backed by the live checkout policy. | `@claim:payment-policy`; cold link crawl received 200 after the Dodo redirect. |
+| F-1-6 | Recovery exports and accessibility remain available without a license. | `@claim:free-exports`; `@claim:accessibility-not-gated`; live `/demo`. |
+| F-1-7 | Landing and demo both show six main items and five copy items. | `@claim:demo-ready`; live demo screenshot above. |
+| F-1-8 | Public copy says the app does not identify people; source, dependencies, and permissions prohibit face-recognition and camera code. | `@claim:no-face-recognition`; live `/privacy`. |
+| F-1-9 | Audience, action, and all three facts fit inside 390×844 and 1440×900 first views. | Browser tests `mobile layout keeps actions inside the viewport` and `desktop first screen keeps its audience and primary action visible`; [live mobile screenshot](verification-artifacts/polish-3-live-home-mobile.webp). |
+| F-1-10 | Every public route sets its own title, description, canonical, Open Graph, and Twitter metadata. | Browser test `every public route publishes its own title, description, canonical, and social metadata`; cold live checks on all six routes. |
+| F-1-11 | The sample handoff route is listed in the sitemap. | `public/sitemap.xml`; live `/sitemap.xml` and `/print/sample-family-archive` returned 200. |
+| F-1-12 | The real HTTP 404 uses the full standard shell and poster identity. | Browser test `unknown routes return 404 and hashed assets are immutable`; [live 404 screenshot](verification-artifacts/polish-3-live-not-found-desktop.webp); live unknown paths returned 404. |
+| F-1-13 | The process copy explains counting files, opening samples, and checking changed matches. | `.factory/copy-audit.md`; live `/`. |
+| F-1-14 | Public copy consistently uses `main archive`, `independent copy`, and `recovery file list`. | Policy test `uses main archive, independent copy, and recovery file list consistently`; live `/`, `/check`, and README audit. |
+| F-1-15 | The walkthrough says the app counts and tests both folders the same way. | `.factory/copy-audit.md`; live `/`. |
+| F-1-16 | The disclosure control says “Enter license token” and reveals the field. | Keyboard browser coverage; live `/`. |
+| F-1-17 | README says archive data stays on the computer. | `.factory/copy-audit.md`; README line 5. |
+| F-1-18 | README describes the same repeatable photo and video sample. | `@claim:repeatable-sample`; README audit. |
+| F-1-19 | README calls the optional commands terminal downloads. | `.factory/copy-audit.md`; README Install section. |
+| F-1-20 | Visitor copy explains that downloads are checked for changes; SHA-256 stays in a developer note. | `@claim:installer-checksum`; README audit. |
+| F-1-21 | Folder guidance says connected drive or network folder. | `@claim:independent-folders`; live `/check`; README audit. |
+| F-1-22 | Copy plainly distinguishes website folder names from desktop drive checks. | `@claim:independent-folders`; live `/check`; README audit. |
+| F-1-23 | README says “Build the deployable static site.” | `.factory/copy-audit.md`; README Develop and test section. |
+| F-1-24 | Privacy copy says Sociobot’s license service. | `@claim:license-privacy`; live `/privacy`; README audit. |
+| F-1-25 | The unsupported visitor-facing signing statement remains removed. | Exact-copy audit; `@claim:platform-download`; live install section resolves to a real AppImage. |
 
-## Review 2 and historical findings
+## Review 2 and earlier controller findings
 
-| Finding | Change retained or made | Evidence |
+| Finding | Change retained and reverified | Evidence |
 |---|---|---|
-| F-2-1 | Only `/print/sample-family-archive` is public; real previews stay in `/check`, and unknown print paths are HTTP 404s. | Browser test `a real handoff stays inside the check route and unknown print paths are real 404s`; local `404 /print/not-a-real-check` |
-| F-2-2 | Result h1 and status derive from all missing, changed, and unreadable entries. | Browser test `a multi-item result names the true issue count in its heading and status` |
-| F-2-3 | The remaining short terms in README and walkthrough were removed. | Policy test `uses main archive, independent copy, and recovery file list consistently` |
-| F-2-4 | A fresh visitor reaches populated sample data with no account UI, redirect, or auth cookie. | `@claim:demo-ready` |
-| F-2-5 | Unsupported signing state copy was removed. | `@claim:platform-download`; exact-copy search |
-| F-2-6 | The v-tag release behavior is registered and tested. | `@claim:release-tag-trigger` |
-| F-2-7 | The Tauri macOS arm64/x64, Windows, and Linux matrix is registered and tested. | `@claim:release-platform-builds` |
-| F-2-8 | Installer assets, `SHA256SUMS`, and `latest.json` are registered and tested. | `@claim:release-attachments` |
-| F-2-9 | Recovery-file-list import validates local JSON, reads a restored folder, and compares saved paths, sizes, and sampled fingerprints locally. | `@claim:recovery-import`; `@claim:recovery-import-private` |
-| F-2-10 | The walkthrough heading names the desktop check from folder choice to report. | `.factory/copy-audit.md`; local landing screenshot |
-| F-2-11 | README says `matching installer`. | `.factory/copy-audit.md` |
-| F-2-12 | Purchase copy says Dodo handles questions or requests about the order. | `@claim:payment-policy`; Terms route check |
-| V8-1 | The historical multi-item heading defect uses the true count. | Browser test `a multi-item result names the true issue count in its heading and status` |
-| Controller-3-1 | The suite clears an orphaned FAC preview only, starts an owned fresh server, and closes isolated offline contexts without closing the shared browser. | Reproduction: start `tests/serve-site.mjs`, run `npm run clean:test-server` (`stale server cleared`), then `npm run test:e2e -- --grep @claim:offline-reload` → 1 passed; `tests/stop-preview-server.mjs` and `playwright.config.ts` |
+| F-2-1 | Real handoff previews stay inside `/check`; only the sample has a public print route; unknown print paths return the designed HTTP 404. | Browser test `a real handoff stays inside the check route and unknown print paths are real 404s`; cold live 200/404 checks. |
+| F-2-2 | Result headings derive from the actual missing, changed, and unreadable count. | Browser test `a multi-item result names the true issue count in its heading and status`. |
+| F-2-3 | README, picker, and walkthrough use the full product terms. | Policy terminology test; live `/` and `/check`. |
+| F-2-4 | A fresh visitor reaches populated sample data with no account controls, redirect, or auth cookie. | `@claim:demo-ready`; live one-click demo audit. |
+| F-2-5 | The unproved unsigned-installer sentence remains absent. | Exact-copy audit; `@claim:platform-download`. |
+| F-2-6 | The `v*` release trigger is registered and parsed by a claim test. | `@claim:release-tag-trigger`; `.github/workflows/release.yml`. |
+| F-2-7 | The macOS arm64/x64, Windows, and Linux Tauri matrix is registered and tested. | `@claim:release-platform-builds`; v0.1.9 release asset list. |
+| F-2-8 | Installer assets, `SHA256SUMS`, and `latest.json` are registered and tested. | `@claim:release-attachments`; live v0.1.9 manifest has five non-null platform URLs. |
+| F-2-9 | Recovery-file-list import validates local JSON and compares a restored folder locally. | `@claim:recovery-import`; `@claim:recovery-import-private`; live `/check`. |
+| F-2-10 | The walkthrough heading names the desktop check from folder choice to report and makes no speed claim. | `.factory/copy-audit.md`; live `/`. |
+| F-2-11 | README says “matching installer.” | README audit; live platform link. |
+| F-2-12 | Purchase copy says Dodo handles questions or requests about the order. | `@claim:payment-policy`; live `/` and `/terms`. |
+| V8-1 | The historical multi-item result heading uses the true issue count. | Browser test `a multi-item result names the true issue count in its heading and status`. |
+| Controller-3-1 | Each Playwright run owns a fresh server; cleanup refuses unrelated listeners; offline tests close only their private contexts. | Full clean-clone 33-test Playwright pass; `tests/stop-preview-server.mjs`; `playwright.config.ts`; `@claim:offline-reload`. |
 
-## Verification record
+## Final evidence
 
-- Local full suite: `npm test` — 27 Vitest and 33 Playwright tests passed after the clean-server repair.
-- Browser smoke: `/opt/fleet/lib/verify-url.sh http://127.0.0.1:4173 repair-artifacts/polish-3-local` passed with no console errors, one h1, `lang=en`, a main landmark, and complete image alt text. Screenshots: `repair-artifacts/polish-3-local/screenshot-desktop.png`, `screenshot-mobile.png`, `demo-mobile.png`, and `not-found-desktop.png`.
-- Local route status: `/`, `/demo`, `/check`, `/privacy`, `/terms`, and `/print/sample-family-archive` returned 200; `/print/not-a-real-check` and `/missing-stop` returned designed 404s.
-- Local mobile Lighthouse: 100 performance, 100 accessibility, 100 best practices, and 100 SEO; LCP 1.5 s, CLS 0, and TBT 0 ms. Evidence: `repair-artifacts/polish-3-local/lighthouse-mobile.json`.
-- Clean clone `/tmp/family-archive-check-polish-3-clean.eDF6Sr` at `2d63f0e4e861d66fa48e81f68fde8250f2f381f6` passed all 31 declared claim commands independently, then passed its aggregate 27-unit/33-browser suite, typecheck, lint, both builds, native tests, and both clippy configurations. Per-claim logs are `/tmp/family-archive-check-polish-3-<claim-id>.log`.
-- Static deployment `c9b4065d-8a06-4b11-acc5-339b59149607` succeeded. Cold live checks returned 200 for every public route and designed HTTP 404s for unknown routes. `verify-url.sh` passed, the direct demo/reset/exit storage check, route metadata, serious/critical Axe scans, and offline reload passed, and live mobile Lighthouse scored 100/100/100/100 (LCP 1.2 s, CLS 0, TBT 30 ms). Evidence: `repair-artifacts/polish-3-live/`.
+- Clean clone `/tmp/family-archive-check-polish-3-clean.RNA5r0` at `1b0b50e4d74b7414cb9eb42e8c90664f85d0f13d`: all 32 exact claim commands passed independently. Logs are `/tmp/family-archive-check-polish-3-<claim-id>.log`.
+- The same clone passed `npm test` (27 Vitest and 33 Playwright tests), typecheck, formatting, both site/app builds, eight native tests, and both clippy configurations.
+- GitHub quality run `33293365892` completed successfully.
+- Live route audit: `/`, `/demo`, `/check`, `/privacy`, `/terms`, and `/print/sample-family-archive` returned 200; two unknown paths returned the designed 404. All routes had one h1/main, correct route metadata, no unexpected console errors, and zero serious/critical Axe findings.
+- Live mobile Lighthouse: performance 99, accessibility 100, best practices 100, SEO 100; LCP 1.4 s, CLS 0, TBT 90 ms.
+- Initial bundles: 15,022 bytes JavaScript gzip, 4,407 bytes CSS gzip; mobile hero 40,942 bytes.
+- The final live crawl checked 16 links. Checkout, legal, internal, Sociobot, and the current Linux installer resolved successfully.
+- Release v0.1.9 contains macOS arm64/x64, Windows MSI/EXE, Linux AppImage/DEB/RPM, `SHA256SUMS`, and `latest.json`; the downloaded DEB checksum passed.
+
+Every reported finding is closed. No severity is deferred.
