@@ -1,4 +1,4 @@
-# Copy audit — polish round 1
+# Copy audit — polish round 2
 
 Audited 2026-08-29 after the F-1-13 through F-1-25 rewrites. Hyphenated terms, file names, URLs, and version numbers count as one word. No sentence exceeds 22 words. No sentence contains a banned marketing word.
 
@@ -27,8 +27,7 @@ Audited 2026-08-29 after the F-1-13 through F-1-25 rewrites. Hyphenated terms, f
 | 8 | Keep an independent backup and test recovery yourself. |
 | 10 | Only an exported recovery file list writes a new file. |
 | 10 | Pay $29 once for unlimited checks and saved folder profiles. |
-| 11 | Dodo Payments takes the payment and handles order-related questions and returns. |
-| 17 | Your computer may warn you because this preview app is not yet signed. |
+| 12 | Dodo Payments takes your payment and handles questions or requests about your order. |
 | 6 | Check family photo copies before handoff. |
 | 9 | Version 0.1.9 · Generated art disclosed in the design notes. |
 
@@ -49,8 +48,8 @@ All interface sentences were extracted from `/demo`, `/check`, `/privacy`, `/ter
 | 8 | After that, it returns a retry time. |
 | 15 | The endpoint stores a keyed address hash, counter, and reset time to enforce that limit. |
 | 13 | The software is provided under the MIT License without a recovery guarantee. |
-| 12 | Dodo Payments handles payment, order questions, and returns. |
-| 10 | Compare the new folder with the recovery file list. |
+| 10 | Dodo Payments handles payment and questions about the order. |
+| 10 | Import the recovery file list to compare the restored folder. |
 
 All remaining interface sentences contain 12 words or fewer. Errors say what happened and what to do next. Buttons use result-naming verbs.
 
@@ -76,4 +75,4 @@ The README was checked sentence by sentence. Its longest sentence has 21 words. 
 | Paid entitlement | household license |
 | Isolated example | demo / sample data |
 
-Catalog description: “Check every family photo and video has a readable copy before handoff.” (11 words, 68 characters.)
+Catalog description: “Check family photo and video copies before handoff.” (8 words, 50 characters.)

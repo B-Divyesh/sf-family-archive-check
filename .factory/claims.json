@@ -1,10 +1,10 @@
 [
   {
     "id": "demo-ready",
-    "claim": "The sample opens as a finished two-folder check.",
+    "claim": "The sample opens without an account as a finished two-folder check.",
     "where": "landing primary action and demo",
     "test": "npm run test:e2e -- --grep @claim:demo-ready",
-    "sandbox": "fresh browser context at /; click the sample action; assert ?demo=1, 6/5 counts, named missing video, and demo banner"
+    "sandbox": "fresh browser context at /; click the sample action; assert ?demo=1, 6/5 counts, named missing video, demo banner, no authentication redirect or controls, and no auth cookies"
   },
   {
     "id": "file-list-export",
@@ -148,10 +148,10 @@
   },
   {
     "id": "payment-policy",
-    "claim": "Dodo Payments takes the payment and handles order-related questions and returns.",
+    "claim": "Dodo Payments takes payment and handles questions about the order.",
     "where": "purchase section and terms",
     "test": "npm run test:e2e -- --grep @claim:payment-policy",
-    "sandbox": "request the Sociobot checkout; assert its live redirect reaches Dodo and its policy identifies Dodo as Merchant of Record handling inquiries and returns"
+    "sandbox": "request the Sociobot checkout; assert its live redirect reaches Dodo and its policy identifies Dodo as Merchant of Record handling order inquiries"
   },
   {
     "id": "free-exports",
@@ -180,5 +180,40 @@
     "where": "privacy page",
     "test": "npm run test:e2e -- --grep @claim:no-tracking",
     "sandbox": "fresh home-page context; record requests and cookies; allow only the documented GitHub release request; assert no external font or script elements"
+  },
+  {
+    "id": "release-tag-trigger",
+    "claim": "The release workflow runs for v* tags.",
+    "where": "README release section",
+    "test": "npm run test:unit -- --testNamePattern @claim:release-tag-trigger",
+    "sandbox": "parse the checked-in release workflow and assert its push tag trigger is v*"
+  },
+  {
+    "id": "release-platform-builds",
+    "claim": "The release workflow builds Tauri installers for macOS arm64 and x86_64, Windows, and Linux.",
+    "where": "README release section",
+    "test": "npm run test:unit -- --testNamePattern @claim:release-platform-builds",
+    "sandbox": "parse the checked-in release workflow and assert its Tauri build matrix names both macOS targets, Windows, and Linux"
+  },
+  {
+    "id": "release-attachments",
+    "claim": "The release workflow attaches installers, SHA256SUMS, and latest.json to the GitHub Release.",
+    "where": "README release section",
+    "test": "npm run test:unit -- --testNamePattern @claim:release-attachments",
+    "sandbox": "parse the checked-in release workflow and assert tauri-action publishes installers while the checksum job uploads SHA256SUMS and latest.json"
+  },
+  {
+    "id": "recovery-import",
+    "claim": "Imports a recovery file list to check a restored folder.",
+    "where": "check screen, handoff sheet, and README",
+    "test": "npm run test:e2e -- --grep @claim:recovery-import",
+    "sandbox": "fresh demo context; export the shipped recovery file list, import it, choose a restored fixture folder, and assert missing and changed entries are reported"
+  },
+  {
+    "id": "recovery-import-private",
+    "claim": "Importing a recovery file list and checking a restored folder stays on this device.",
+    "where": "recovery import screen and privacy promise",
+    "test": "npm run test:e2e -- --grep @claim:recovery-import-private",
+    "sandbox": "fresh context; record requests through recovery file-list import and restored-folder check; assert same-origin only"
   }
 ]

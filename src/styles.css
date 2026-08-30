@@ -139,6 +139,10 @@ figcaption { margin-top: 20px; }
 .browser-note { margin: 0; max-width: none; padding: 16px 32px; border-top: 1px solid #a79e8d; color: var(--muted); }
 .empty-guidance h2 { font-size: 1.4rem; }
 .empty-guidance p { margin-inline: auto; }
+.recovery-import { padding: 32px; border-top: 2px solid var(--ink); background: #e3d2b3; }
+.recovery-import h2 { font-size: 1.6rem; }
+.recovery-import p { margin-bottom: 20px; }
+.recovery-panel .folder-stop:first-child { background: #ece0c8; }
 .result-panel { animation: rise-in 220ms ease-out both; }
 @keyframes rise-in { from { transform: translateY(8px); } }
 .verdict { display: flex; align-items: center; gap: 20px; padding: 28px 32px; background: var(--green); color: white; }

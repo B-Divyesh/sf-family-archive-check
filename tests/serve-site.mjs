@@ -4,7 +4,7 @@ import { extname, join, normalize } from 'node:path';
 
 const root = join(process.cwd(), 'dist/site');
 const config = JSON.parse(readFileSync(join(root, 'staticwebapp.config.json'), 'utf8'));
-const knownAppRoutes = new Set(['/', '/demo', '/check', '/privacy', '/terms']);
+const knownAppRoutes = new Set(['/', '/demo', '/check', '/privacy', '/terms', '/print/sample-family-archive']);
 const mime = {
   '.css': 'text/css; charset=utf-8', '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
   '.json': 'application/json; charset=utf-8', '.png': 'image/png', '.ps1': 'text/plain; charset=utf-8',
@@ -13,7 +13,7 @@ const mime = {
 
 createServer((request, response) => {
   const pathname = decodeURIComponent(new URL(request.url ?? '/', 'http://127.0.0.1').pathname);
-  const isAppRoute = knownAppRoutes.has(pathname) || pathname.startsWith('/print/');
+  const isAppRoute = knownAppRoutes.has(pathname);
   const requested = normalize(pathname).replace(/^(\.\.(\/|\\|$))+/, '');
   let file = join(root, requested === '/' ? 'index.html' : requested);
   let status = 200;

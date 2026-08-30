@@ -21,6 +21,9 @@ let primaryScan: TargetScan | undefined;
 let backupScan: TargetScan | undefined;
 let currentResult: CheckResult | undefined;
 let demoResult = sampleResult();
+let importedRecovery: CheckResult | undefined;
+let restoredScan: TargetScan | undefined;
+let showingHandoff = false;
 let busy = false;
 let scanError = '';
 
@@ -66,7 +69,7 @@ const routeMetadata: Record<string, { title: string; description: string }> = {
 };
 
 function setMetadata(path: string) {
-  const key = path.startsWith('/print/') ? (path === '/print/sample-family-archive' ? path : '/check') : path;
+  const key = path;
   const metadata = routeMetadata[key] ?? routeMetadata['/404'];
   const canonicalPath = path === '/404' ? '/404.html' : path;
   const canonical = `${SITE}${canonicalPath === '/' ? '/' : canonicalPath}`;
@@ -140,19 +143,19 @@ function landing() {
       </ol>
     </section>
     <section class="walkthrough" aria-labelledby="walk-title">
-      <p class="eyebrow">Inside the desktop app</p><h2 id="walk-title">A short check, from folders to handoff</h2>
+      <p class="eyebrow">Inside the desktop app</p><h2 id="walk-title">See the desktop check from folder choice to report</h2>
       <div class="walk-grid">
         <figure><div class="walk-frame"><b>1 · MAIN ARCHIVE</b><span>/Photos/Family</span><span class="mock-button" aria-hidden="true">Choose folder</span></div><figcaption>Choose folders. The app only reads them.</figcaption></figure>
         <figure><div class="walk-frame"><b>2 · CHECK</b><span class="mini-route">●━━━━━━●</span><em>Reading 48 samples</em></div><figcaption>The app counts and tests both folders the same way.</figcaption></figure>
-        <figure><div class="walk-frame result-mini"><b>3 · REPORT</b><strong>1 item needs attention</strong><span>Export file list</span></div><figcaption>Keep the recovery file list beside the archive.</figcaption></figure>
+        <figure><div class="walk-frame result-mini"><b>3 · REPORT</b><strong>1 item needs attention</strong><span>Export recovery file list</span></div><figcaption>Keep the recovery file list beside the archive.</figcaption></figure>
       </div>
     </section>
     <section class="boundaries" aria-labelledby="privacy-title"><div><p class="eyebrow">Read-only by default</p><h2 id="privacy-title">Your folders stay unchanged</h2></div><div><p>The app does not move, rename, edit, upload, or identify people in media.</p><p>Keep an independent backup and test recovery yourself.</p><p>Only an exported recovery file list writes a new file.</p></div></section>
     <section class="purchase" aria-labelledby="price-title">
       <div><p class="eyebrow">Household license</p><h2 id="price-title">Check archives larger than 500 files</h2><p>Pay $29 once for unlimited checks and saved folder profiles.</p></div>
-      <div><a class="button gold" href="https://api.sociobot.in/api/v1/products/family-archive-check/checkout">Buy household license — $29</a><button class="text-button" id="show-license">Enter license token</button><p class="fine-print">Dodo Payments takes the payment and handles order-related questions and returns.</p></div>
+      <div><a class="button gold" href="https://api.sociobot.in/api/v1/products/family-archive-check/checkout">Buy household license — $29</a><button class="text-button" id="show-license">Enter license token</button><p class="fine-print">Dodo Payments takes your payment and handles questions or requests about your order.</p></div>
     </section>
-    <section class="download-band" aria-labelledby="download-title"><div><p class="eyebrow">Desktop app · unsigned preview</p><h2 id="download-title">Install for full folder checks</h2><p id="download-copy">Checking the latest release for this device…</p></div><a class="button primary" id="download-button" href="https://github.com/${REPO}/releases">View releases</a></section>
+    <section class="download-band" aria-labelledby="download-title"><div><p class="eyebrow">Desktop app</p><h2 id="download-title">Install for full folder checks</h2><p id="download-copy">Checking the latest release for this device…</p></div><a class="button primary" id="download-button" href="https://github.com/${REPO}/releases">View releases</a></section>
     <div class="license-panel" id="license-panel" hidden><label for="license-token">License token</label><div><input id="license-token" autocomplete="off" /><button id="save-license">Verify license</button></div><p id="license-status" role="status"></p></div>
   `);
 }
@@ -166,16 +169,21 @@ function legal(kind: 'privacy' | 'terms') {
     <h2>Remove saved data</h2><p>Remove a license in the app, or clear this site’s storage in your browser settings.</p>` : `
     <h2>Use it as a check, not a backup</h2><p>The app reports what it can read and compare. Keep independent backups and test recovery yourself.</p>
     <h2>Your responsibility</h2><p>Review folder choices and exported reports. The software is provided under the MIT License without a recovery guarantee.</p>
-    <h2>Purchases</h2><p>A $29 purchase grants one household a continuing license. Dodo Payments handles payment, order questions, and returns.</p>
+    <h2>Purchases</h2><p>A $29 purchase grants one household a continuing license. Dodo Payments handles payment and questions about the order.</p>
     <h2>Fair use</h2><p>Do not use the service to attack license systems or interfere with the release website.</p>`}<p><a href="/" data-link>Return to the home page</a></p></article>`);
 }
 
 function checker(demo = false) {
   const result = demo ? demoResult : currentResult;
   const storageUnverified = Boolean(result && !demo && !isTauri && !result.primary.storageId);
+  if (!demo && showingHandoff && result) return printPage(result, false);
+  if (!demo && importedRecovery && !result) return recoveryChecker();
+  const heading = result ? result.verdict === 'ready'
+    ? (storageUnverified ? 'Files match; drive separation is unverified' : 'Both archive copies are ready')
+    : issueHeading(result) : 'Check two archive folders';
   return shell(demo ? 'demo' : 'check', `
     <section class="app-screen">
-      <div class="app-heading"><div><p class="eyebrow">${demo ? 'Sample archive' : 'New archive check'}</p><h1 tabindex="-1">${result ? (result.verdict === 'ready' ? (storageUnverified ? 'Files match; drive separation is unverified' : 'Both archive copies are ready') : 'One archive item needs attention') : 'Check two archive folders'}</h1><p>${result ? 'Review the difference, then export a recovery file list.' : 'Choose the main archive and an independent copy. Nothing will be changed.'}</p></div>${!result ? '<span class="read-only-stamp">Read only</span>' : ''}</div>
+      <div class="app-heading"><div><p class="eyebrow">${demo ? 'Sample archive' : 'New archive check'}</p><h1 tabindex="-1">${heading}</h1><p>${result ? 'Review the difference, then export a recovery file list.' : 'Choose the main archive and an independent copy. Nothing will be changed.'}</p></div>${!result ? '<span class="read-only-stamp">Read only</span>' : ''}</div>
       ${result ? resultView(result, demo) : pickerView()}
       ${!demo ? appLicenseView() : ''}
     </section>`, demo);
@@ -186,7 +194,7 @@ function pickerView() {
   const independenceProblem = primaryScan && backupScan ? folderIndependenceProblem(primaryScan, backupScan) : undefined;
   return `<section class="check-panel" aria-label="Folder choices">
     <div class="route-progress ${busy ? 'is-moving' : ''}" aria-hidden="true"><i></i></div>
-    <div class="folder-stop"><span class="stop-number">01</span><div><h2>Main archive</h2><p id="primary-path">${primaryScan ? escapeHtml(primaryScan.path) : 'Choose the folder you treat as the original archive. Choosing starts a read-only inventory.'}</p></div><button id="choose-primary">${primaryScan ? 'Choose a different folder' : 'Choose and read main folder'}</button></div>
+    <div class="folder-stop"><span class="stop-number">01</span><div><h2>Main archive</h2><p id="primary-path">${primaryScan ? escapeHtml(primaryScan.path) : 'Choose the folder you treat as the original archive. Choosing starts a read-only inventory.'}</p></div><button id="choose-primary">${primaryScan ? 'Choose a different folder' : 'Choose and read main archive'}</button></div>
     <div class="folder-stop"><span class="stop-number">02</span><div><h2>Independent copy</h2><p id="backup-path">${backupScan ? escapeHtml(backupScan.path) : 'Choose a copy on another connected drive or network folder. Choosing starts a read-only inventory.'}</p></div><button id="choose-backup">${backupScan ? 'Choose a different folder' : 'Choose and read backup folder'}</button></div>
     <div class="scan-action"><button class="button primary" id="run-check" ${!primaryScan || !backupScan || busy || independenceProblem ? 'disabled' : ''}>${busy ? 'Checking folders…' : 'Check both folders'}</button><p id="scan-status" role="status">${busy ? 'Reading files. Large folders can take several minutes.' : 'The app opens a repeatable sample of media. It never changes the folders.'}</p></div>
     <input class="sr-only" type="file" id="primary-input" aria-label="Choose main archive folder" tabindex="-1" webkitdirectory multiple /><input class="sr-only" type="file" id="backup-input" aria-label="Choose independent copy folder" tabindex="-1" webkitdirectory multiple />
@@ -194,7 +202,16 @@ function pickerView() {
     ${!isTauri ? '<p class="browser-note">The website can spot the same folder name. Only the desktop app can confirm that folders are on separate drives.</p>' : ''}
     ${profiles.length ? `<div class="saved-profiles"><h2>Saved folder profiles</h2><p>Choose a profile to read both folders again.</p><ul>${profiles.map((profile, index) => `<li><div><strong>${escapeHtml(profile.main)}</strong><span>${escapeHtml(profile.backup)}</span></div><button data-use-profile="${index}">Read this profile</button><button class="text-button" data-forget-profile="${index}">Forget</button></li>`).join('')}</ul></div>` : ''}
     <div class="empty-guidance"><h2>${profiles.length ? 'Start another check' : 'No folders chosen yet'}</h2><p>Your counts and copy differences will appear here after one check.</p><button class="text-button" id="load-sample">Load sample project</button></div>
+    <section class="recovery-import" aria-labelledby="import-title"><h2 id="import-title">Check a restored folder</h2><p>Import a recovery file list, then compare a restored folder with its saved paths, sizes, and sampled fingerprints.</p><button class="button secondary" id="import-recovery-file">Import recovery file list</button><input class="sr-only" type="file" id="recovery-file-input" aria-label="Import recovery file list" accept="application/json,.json" tabindex="-1" /><p id="import-status" role="status"></p></section>
   </section>`;
+}
+
+function recoveryChecker() {
+  const baseline = importedRecovery!;
+  return shell('check', `<section class="app-screen"><div class="app-heading"><div><p class="eyebrow">Recovery check</p><h1 tabindex="-1">Check a restored folder</h1><p>Compare the restored folder with the imported recovery file list. Nothing will be changed.</p></div><span class="read-only-stamp">Read only</span></div>
+    <section class="check-panel recovery-panel" aria-label="Restored folder choice"><div class="folder-stop"><span class="stop-number">01</span><div><h2>Imported recovery file list</h2><p>${escapeHtml(baseline.primary.path)} · ${baseline.primary.files.length} saved entries</p></div><button class="text-button" id="cancel-recovery">Use two folders instead</button></div>
+    <div class="folder-stop"><span class="stop-number">02</span><div><h2>Restored folder</h2><p id="restored-path">${restoredScan ? escapeHtml(restoredScan.path) : 'Choose the folder restored from your independent copy. Choosing starts a read-only inventory.'}</p></div><button id="choose-restored">${restoredScan ? 'Choose a different restored folder' : 'Choose and read restored folder'}</button></div>
+    <div class="scan-action"><button class="button primary" id="run-recovery-check" ${!restoredScan || busy ? 'disabled' : ''}>${busy ? 'Checking restored folder…' : 'Check restored folder'}</button><p role="status">The app compares saved paths, sizes, and sampled fingerprints. It never changes the folder.</p></div><input class="sr-only" type="file" id="restored-input" aria-label="Choose restored folder" tabindex="-1" webkitdirectory multiple />${scanError ? `<p class="scan-error" role="alert">${escapeHtml(scanError)}</p>` : ''}</section></section>${appLicenseView()}`);
 }
 
 function resultView(result: CheckResult, demo: boolean) {
@@ -207,11 +224,11 @@ function resultView(result: CheckResult, demo: boolean) {
     <div class="archive-comparison">
       <article><p class="eyebrow">Main archive</p><h2>${main.files} files</h2><dl><div><dt>Photos</dt><dd>${main.photo}</dd></div><div><dt>Videos</dt><dd>${main.video}</dd></div><div><dt>Size</dt><dd>${formatBytes(main.bytes)}</dd></div><div><dt>Location</dt><dd>${escapeHtml(result.primary.path)}</dd></div></dl></article>
       <div class="comparison-line" aria-hidden="true"><span></span></div>
-      <article><p class="eyebrow">Independent copy</p><h2>${backup.files} files</h2><dl><div><dt>Photos</dt><dd>${backup.photo}</dd></div><div><dt>Videos</dt><dd>${backup.video}</dd></div><div><dt>Size</dt><dd>${formatBytes(backup.bytes)}</dd></div><div><dt>Location</dt><dd>${escapeHtml(result.backup.path)}</dd></div></dl></article>
+      <article><p class="eyebrow">${escapeHtml(result.backup.label)}</p><h2>${backup.files} files</h2><dl><div><dt>Photos</dt><dd>${backup.photo}</dd></div><div><dt>Videos</dt><dd>${backup.video}</dd></div><div><dt>Size</dt><dd>${formatBytes(backup.bytes)}</dd></div><div><dt>Location</dt><dd>${escapeHtml(result.backup.path)}</dd></div></dl></article>
     </div>
     <div class="check-evidence"><h2>What was checked</h2><ul><li><strong>${result.sampledHashes}</strong> sampled file fingerprints compared</li><li><strong>${result.dateCoverage}%</strong> of main media has a known year</li><li><strong>${result.unreadable.length}</strong> unreadable file entries</li></ul></div>
     <div class="difference-list"><h2>Items to review</h2>${issues.length || result.extraOnBackup.length ? `<ul>${result.missingFromBackup.map((path) => `<li><span class="issue-label">Missing from copy</span><code>${escapeHtml(path)}</code></li>`).join('')}${result.changed.map((path) => `<li><span class="issue-label">Different file</span><code>${escapeHtml(path)}</code></li>`).join('')}${result.unreadable.map((path) => `<li><span class="issue-label">Could not read</span><code>${escapeHtml(path)}</code></li>`).join('')}${result.extraOnBackup.map((path) => `<li><span class="issue-label extra">Only on copy</span><code>${escapeHtml(path)}</code></li>`).join('')}</ul>` : '<p>No missing, changed, extra, or unreadable items were found.</p>'}</div>
-    <div class="result-actions"><button class="button primary" id="export-manifest">Export recovery file list</button><button class="button secondary" id="print-handoff">Print handoff sheet</button>${!demo && licenseState().active ? '<button class="button secondary" id="save-profile">Save folder profile</button>' : ''}${!demo ? '<button class="text-button" id="new-check">Start a new check</button>' : ''}</div>
+    <div class="result-actions"><button class="button primary" id="export-manifest">Export recovery file list</button><button class="button secondary" id="print-handoff">${demo ? 'Print handoff sheet' : 'Preview handoff sheet'}</button>${!demo && licenseState().active ? '<button class="button secondary" id="save-profile">Save folder profile</button>' : ''}${!demo ? '<button class="text-button" id="new-check">Start a new check</button>' : ''}</div>
     <p class="fine-print">The recovery file list includes paths, sizes, dates, and sampled fingerprints. Keep it beside both copies.</p>
   </section>`;
 }
@@ -226,6 +243,15 @@ function notFound() {
   return shell('', `<section class="not-found"><p class="error-code">Error 404</p><h1 tabindex="-1">This page was not found</h1><p>Check the address, or return to the home page.</p><a class="button primary" href="/" data-link>Return to the home page</a></section>`);
 }
 
+function issueCount(result: CheckResult) {
+  return result.missingFromBackup.length + result.changed.length + result.unreadable.length;
+}
+
+function issueHeading(result: CheckResult) {
+  const count = issueCount(result);
+  return count === 1 ? 'One archive item needs attention' : `${count} archive items need attention`;
+}
+
 function render({ announceRoute = false }: { announceRoute?: boolean } = {}) {
   const path = routePath();
   setMetadata(routeMetadata[path] || path.startsWith('/print/') ? path : '/404');
@@ -235,7 +261,6 @@ function render({ announceRoute = false }: { announceRoute?: boolean } = {}) {
   else if (path === '/privacy') app.innerHTML = legal('privacy');
   else if (path === '/terms') app.innerHTML = legal('terms');
   else if (path === '/print/sample-family-archive') app.innerHTML = printPage(sampleResult(), true);
-  else if (path.startsWith('/print/') && currentResult?.checkId === path.slice('/print/'.length)) app.innerHTML = printPage(currentResult, false);
   else app.innerHTML = notFound();
   bindEvents();
   if (announceRoute) {
@@ -251,7 +276,7 @@ function printPage(result: CheckResult, demo: boolean) {
 
 function printSheet(result: CheckResult) {
   const issues = [...result.missingFromBackup, ...result.changed, ...result.unreadable];
-  return `<section class="print-sheet"><p class="eyebrow">Family Archive Check · recovery handoff</p><h1 tabindex="-1">How to recover this family archive</h1><p>Checked ${new Date(result.checkedAt).toLocaleDateString()} · Check ID ${escapeHtml(result.checkId)}</p><ol><li>Connect the drive that contains <strong>${escapeHtml(result.backup.path)}</strong>.</li><li>Copy its contents to a new, empty folder.</li><li>Open several photos and videos from different years.</li><li>Compare the new folder with the recovery file list.</li></ol><h2>Locations</h2><dl><div><dt>Main archive</dt><dd>${escapeHtml(result.primary.path)}</dd></div><div><dt>Independent copy</dt><dd>${escapeHtml(result.backup.path)}</dd></div></dl><h2>Check result</h2><p>${result.matched} matching paths. ${issues.length} ${issues.length === 1 ? 'item needs' : 'items need'} review.</p>${issues.length ? `<ul>${issues.map((path) => `<li>${escapeHtml(path)}</li>`).join('')}</ul>` : ''}<div class="print-actions"><button class="button primary" id="print-now">Print this sheet</button><button class="text-button" id="close-print">Return to results</button></div></section>`;
+  return `<section class="print-sheet"><p class="eyebrow">Family Archive Check · recovery handoff</p><h1 tabindex="-1">How to recover this family archive</h1><p>Checked ${new Date(result.checkedAt).toLocaleDateString()} · Check ID ${escapeHtml(result.checkId)}</p><ol><li>Connect the drive that contains <strong>${escapeHtml(result.backup.path)}</strong>.</li><li>Copy its contents to a new, empty folder.</li><li>Open several photos and videos from different years.</li><li>Import the recovery file list to compare the restored folder.</li></ol><h2>Locations</h2><dl><div><dt>Main archive</dt><dd>${escapeHtml(result.primary.path)}</dd></div><div><dt>${escapeHtml(result.backup.label)}</dt><dd>${escapeHtml(result.backup.path)}</dd></div></dl><h2>Check result</h2><p>${result.matched} matching paths. ${issues.length} ${issues.length === 1 ? 'item needs' : 'items need'} review.</p>${issues.length ? `<ul>${issues.map((path) => `<li>${escapeHtml(path)}</li>`).join('')}</ul>` : ''}<div class="print-actions"><button class="button primary" id="print-now">Print this sheet</button><button class="text-button" id="close-print">Return to results</button></div></section>`;
 }
 
 function navigate(path: string) {
@@ -343,6 +368,82 @@ async function acceptBrowserFolder(which: 'primary' | 'backup', files: FileList 
   }
 }
 
+async function chooseRestoredFolder() {
+  if (isTauri) {
+    try {
+      scanError = '';
+      const { open } = await import('@tauri-apps/plugin-dialog');
+      const path = await open({ directory: true, multiple: false, title: 'Choose restored folder' });
+      if (!path) return;
+      busy = true;
+      render();
+      const { invoke } = await import('@tauri-apps/api/core');
+      restoredScan = await invoke<TargetScan>('scan_folder', { path, label: 'Restored folder' });
+    } catch (error) {
+      scanError = `The restored folder could not be read. Check the drive, then choose it again. ${String(error)}`;
+    } finally {
+      busy = false;
+      render();
+    }
+    return;
+  }
+  document.querySelector<HTMLInputElement>('#restored-input')?.click();
+}
+
+async function acceptRestoredFolder(files: FileList | null) {
+  if (!files?.length) return;
+  busy = true;
+  scanError = '';
+  render();
+  try {
+    restoredScan = await scanBrowserFiles(files, 'Restored folder');
+  } catch (error) {
+    scanError = `The restored folder could not be read. Check the folder, then choose it again. ${error instanceof Error ? error.message : ''}`;
+  } finally {
+    busy = false;
+    render();
+  }
+}
+
+function isFileRecord(value: unknown): boolean {
+  return Boolean(value) && typeof value === 'object' && typeof (value as Record<string, unknown>).relativePath === 'string' &&
+    typeof (value as Record<string, unknown>).size === 'number' && typeof (value as Record<string, unknown>).readable === 'boolean' &&
+    typeof (value as Record<string, unknown>).sampled === 'boolean';
+}
+
+function isTargetScan(value: unknown): value is TargetScan {
+  return Boolean(value) && typeof value === 'object' && typeof (value as Record<string, unknown>).path === 'string' &&
+    typeof (value as Record<string, unknown>).label === 'string' && Array.isArray((value as Record<string, unknown>).files) &&
+    ((value as Record<string, unknown>).files as unknown[]).every(isFileRecord);
+}
+
+function isRecoveryFileList(value: unknown): value is CheckResult {
+  if (!value || typeof value !== 'object') return false;
+  const record = value as Record<string, unknown>;
+  return record.version === 1 && typeof record.checkId === 'string' && typeof record.checkedAt === 'string' &&
+    isTargetScan(record.primary) && isTargetScan(record.backup) && typeof record.matched === 'number' &&
+    typeof record.sampledHashes === 'number' && typeof record.dateCoverage === 'number' &&
+    (record.verdict === 'ready' || record.verdict === 'attention') &&
+    ['missingFromBackup', 'extraOnBackup', 'changed', 'unreadable'].every((key) => Array.isArray(record[key]) && record[key].every((entry) => typeof entry === 'string'));
+}
+
+async function importRecoveryFile(files: FileList | null) {
+  const file = files?.[0];
+  if (!file) return;
+  try {
+    const value: unknown = JSON.parse(await file.text());
+    if (!isRecoveryFileList(value)) throw new Error('This file is not a Family Archive Check recovery file list.');
+    importedRecovery = value;
+    restoredScan = undefined;
+    scanError = '';
+    currentResult = undefined;
+    render({ announceRoute: true });
+  } catch (error) {
+    const status = document.querySelector<HTMLElement>('#import-status');
+    if (status) status.textContent = error instanceof Error ? error.message : 'The recovery file list could not be read.';
+  }
+}
+
 function runCheck() {
   if (!primaryScan || !backupScan) return;
   const independenceProblem = folderIndependenceProblem(primaryScan, backupScan);
@@ -359,6 +460,19 @@ function runCheck() {
   render();
   setTimeout(() => {
     currentResult = compareScans(primaryScan!, backupScan!);
+    showingHandoff = false;
+    busy = false;
+    render();
+  }, matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 650);
+}
+
+function runRecoveryCheck() {
+  if (!importedRecovery || !restoredScan) return;
+  busy = true;
+  render();
+  setTimeout(() => {
+    currentResult = compareScans(importedRecovery!.primary, restoredScan!);
+    showingHandoff = false;
     busy = false;
     render();
   }, matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 650);
@@ -446,7 +560,7 @@ async function loadRelease() {
     if (!match) throw new Error('platform asset unavailable');
     button.href = match.browser_download_url;
     button.textContent = `Download for ${platform === 'mac' ? 'macOS' : platform === 'windows' ? 'Windows' : 'Linux'}`;
-    copy.textContent = `${release.tag_name} is ready. Your computer may warn you because this preview app is not yet signed.`;
+    copy.textContent = `${release.tag_name} is ready. Choose the installer for this device.`;
   } catch {
     copy.textContent = 'Downloads are being published. The release page shows current progress.';
     button.textContent = 'View release page';
@@ -476,12 +590,24 @@ function bindEvents() {
   }));
   document.querySelector('#primary-input')?.addEventListener('change', (event) => void acceptBrowserFolder('primary', (event.target as HTMLInputElement).files));
   document.querySelector('#backup-input')?.addEventListener('change', (event) => void acceptBrowserFolder('backup', (event.target as HTMLInputElement).files));
+  document.querySelector('#import-recovery-file')?.addEventListener('click', () => document.querySelector<HTMLInputElement>('#recovery-file-input')?.click());
+  document.querySelector('#recovery-file-input')?.addEventListener('change', (event) => void importRecoveryFile((event.target as HTMLInputElement).files));
+  document.querySelector('#choose-restored')?.addEventListener('click', () => void chooseRestoredFolder());
+  document.querySelector('#restored-input')?.addEventListener('change', (event) => void acceptRestoredFolder((event.target as HTMLInputElement).files));
+  document.querySelector('#run-recovery-check')?.addEventListener('click', runRecoveryCheck);
+  document.querySelector('#cancel-recovery')?.addEventListener('click', () => { importedRecovery = restoredScan = undefined; scanError = ''; render({ announceRoute: true }); });
   document.querySelector('#run-check')?.addEventListener('click', runCheck);
   document.querySelector('#export-manifest')?.addEventListener('click', () => void exportManifest());
-  document.querySelector('#print-handoff')?.addEventListener('click', () => navigate(`/print/${routePath() === '/demo' ? 'sample-family-archive' : currentResult?.checkId ?? 'missing'}`));
+  document.querySelector('#print-handoff')?.addEventListener('click', () => {
+    if (routePath() === '/demo') navigate('/print/sample-family-archive');
+    else { showingHandoff = true; render({ announceRoute: true }); }
+  });
   document.querySelector('#print-now')?.addEventListener('click', () => print());
-  document.querySelector('#close-print')?.addEventListener('click', () => { if (__APP_BUILD__ || isTauri) navigate(routePath() === '/print/sample-family-archive' ? '/demo' : '/check'); else history.back(); });
-  document.querySelector('#new-check')?.addEventListener('click', () => { currentResult = primaryScan = backupScan = undefined; render(); });
+  document.querySelector('#close-print')?.addEventListener('click', () => {
+    if (routePath() === '/print/sample-family-archive') navigate('/demo');
+    else { showingHandoff = false; render({ announceRoute: true }); }
+  });
+  document.querySelector('#new-check')?.addEventListener('click', () => { currentResult = primaryScan = backupScan = importedRecovery = restoredScan = undefined; showingHandoff = false; render(); });
   document.querySelector('#save-profile')?.addEventListener('click', () => {
     if (!currentResult || !licenseState().active) return;
     const profiles = savedProfiles().filter((profile) => profile.main !== currentResult?.primary.path || profile.backup !== currentResult?.backup.path);

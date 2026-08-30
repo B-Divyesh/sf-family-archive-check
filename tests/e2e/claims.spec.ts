@@ -24,6 +24,9 @@ test('@claim:demo-ready opens a finished sample check in one click', async ({ pa
   await expect(page.getByRole('heading', { name: '6 files' })).toBeVisible();
   await expect(page.getByRole('heading', { name: '5 files' })).toBeVisible();
   await expect(page.getByText('Demo — sample data, nothing is saved')).toBeVisible();
+  await expect(page.getByRole('link', { name: /sign in|log in|create account/i })).toHaveCount(0);
+  await expect(page.getByLabel(/email|password/i)).toHaveCount(0);
+  expect((await page.context().cookies()).filter((cookie) => /auth|session|account/i.test(cookie.name))).toEqual([]);
 });
 
 test('@claim:file-list-export exports the recovery file list', async ({ page }) => {
@@ -144,7 +147,7 @@ test('@claim:paid-license unlocks a 501-file check and a reusable saved profile'
   await expect(link).toHaveAttribute('href', 'https://api.sociobot.in/api/v1/products/family-archive-check/checkout');
   await expect(page.getByText('Pay $29 once for unlimited checks and saved folder profiles.')).toBeVisible();
   await page.goto('/check');
-  await page.getByRole('button', { name: 'Choose and read main folder' }).click();
+  await page.getByRole('button', { name: 'Choose and read main archive' }).click();
   await page.getByRole('button', { name: 'Choose and read backup folder' }).click();
   let limitMessage = '';
   page.once('dialog', async (dialog) => { limitMessage = dialog.message(); await dialog.dismiss(); });
@@ -169,12 +172,12 @@ test('@claim:paid-license unlocks a 501-file check and a reusable saved profile'
 
 });
 
-test('@claim:payment-policy checkout identifies Dodo as payment and returns handler', async ({ request }) => {
+test('@claim:payment-policy checkout identifies Dodo as payment and order-question handler', async ({ request }) => {
   const response = await request.get('https://api.sociobot.in/api/v1/products/family-archive-check/checkout');
   expect(response.url()).toMatch(/^https:\/\/checkout\.dodopayments\.com\/session\//);
   const body = await response.text();
   expect(body).toContain('Merchant of Record, dodopayments.com');
-  expect(body).toContain('handles order-related inquiries and returns');
+  expect(body).toContain('handles order-related inquiries');
 });
 
 test('the browser sends a pasted license only to the product verification proxy', async ({ page }) => {
@@ -315,6 +318,54 @@ test('@claim:handoff-sheet opens a printable recovery handoff', async ({ page })
   await expect(page.getByRole('button', { name: 'Print this sheet' })).toBeVisible();
 });
 
+test('a real handoff stays inside the check route and unknown print paths are real 404s', async ({ page, request }) => {
+  const fixture = await mkdtemp(join(tmpdir(), 'archive-handoff-route-'));
+  const main = join(fixture, 'main-archive');
+  const copy = join(fixture, 'independent-copy');
+  await mkdir(main);
+  await mkdir(copy);
+  await writeFile(join(main, 'family-note.txt'), 'original');
+  await writeFile(join(copy, 'family-note.txt'), 'copy');
+  try {
+    await page.goto('/check');
+    await page.locator('#primary-input').setInputFiles(main);
+    await page.locator('#backup-input').setInputFiles(copy);
+    await page.getByRole('button', { name: 'Check both folders' }).click();
+    await page.getByRole('button', { name: 'Preview handoff sheet' }).click();
+    await expect(page).toHaveURL(/\/check$/);
+    await expect(page).toHaveTitle('Check folders — Family Archive Check');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('How to recover this family archive');
+    await page.getByRole('button', { name: 'Return to results' }).click();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('One archive item needs attention');
+    const unknown = await request.get('/print/not-a-real-check');
+    expect(unknown.status()).toBe(404);
+    expect(await unknown.text()).toContain('This page was not found');
+  } finally {
+    await rm(fixture, { recursive: true, force: true });
+  }
+});
+
+test('a multi-item result names the true issue count in its heading and status', async ({ page }) => {
+  const fixture = await mkdtemp(join(tmpdir(), 'archive-multi-issue-'));
+  const main = join(fixture, 'main-archive');
+  const copy = join(fixture, 'independent-copy');
+  await mkdir(main);
+  await mkdir(copy);
+  await writeFile(join(main, 'first.txt'), 'first');
+  await writeFile(join(main, 'second.txt'), 'second');
+  await writeFile(join(copy, 'keep.txt'), 'keep');
+  try {
+    await page.goto('/check');
+    await page.locator('#primary-input').setInputFiles(main);
+    await page.locator('#backup-input').setInputFiles(copy);
+    await page.getByRole('button', { name: 'Check both folders' }).click();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('2 archive items need attention');
+    await expect(page.locator('.verdict[role="status"]')).toContainText('2 items need attention');
+  } finally {
+    await rm(fixture, { recursive: true, force: true });
+  }
+});
+
 test('@claim:platform-download links a detected platform to a release asset', async ({ page }) => {
   await page.addInitScript(() => Object.defineProperty(navigator, 'platform', { get: () => 'MacIntel' }));
   await page.route('https://api.github.com/repos/B-Divyesh/sf-family-archive-check/releases?per_page=1', (route) => route.fulfill({
@@ -325,7 +376,58 @@ test('@claim:platform-download links a detected platform to a release asset', as
   await page.goto('/');
   const download = page.getByRole('link', { name: 'Download for macOS' });
   await expect(download).toHaveAttribute('href', 'https://example.test/family-archive-check.dmg');
-  await expect(page.getByText('v0.1.1 is ready. Your computer may warn you because this preview app is not yet signed.')).toBeVisible();
+  await expect(page.getByText('v0.1.1 is ready. Choose the installer for this device.')).toBeVisible();
+});
+
+test('@claim:recovery-import imports a recovery file list and checks a restored folder', async ({ page }) => {
+  const fixture = await mkdtemp(join(tmpdir(), 'archive-restored-'));
+  const restored = join(fixture, 'restored-family');
+  const datedFolder = join(restored, '1987', '08-Lake-camping');
+  await mkdir(datedFolder, { recursive: true });
+  await writeFile(join(datedFolder, 'Dad-by-the-tent.jpg'), new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0, 0, 0, 0, 0, 0, 0xff, 0xd9]));
+  try {
+    await page.goto('/demo');
+    const download = page.waitForEvent('download');
+    await page.getByRole('button', { name: 'Export recovery file list' }).click();
+    const manifest = await download;
+    await page.getByRole('button', { name: 'Start for real' }).click();
+    await page.locator('#import-recovery-file').click();
+    await page.locator('#recovery-file-input').setInputFiles((await manifest.path())!);
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Check a restored folder');
+    await page.locator('#restored-input').setInputFiles(restored);
+    await page.getByRole('button', { name: 'Check restored folder' }).click();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('6 archive items need attention');
+    await expect(page.getByText('1987/08-Lake-camping/Dad-by-the-tent.jpg')).toBeVisible();
+    await expect(page.getByText('2024/01-New-year/fireworks.mp4')).toBeVisible();
+  } finally {
+    await rm(fixture, { recursive: true, force: true });
+  }
+});
+
+test('@claim:recovery-import-private keeps the recovery comparison on this device', async ({ page }) => {
+  const fixture = await mkdtemp(join(tmpdir(), 'archive-restored-private-'));
+  const restored = join(fixture, 'restored-family');
+  await mkdir(restored);
+  await writeFile(join(restored, 'note.txt'), 'restored locally');
+  const outsideRequests: string[] = [];
+  page.on('request', (request) => {
+    if (new URL(request.url()).origin !== 'http://127.0.0.1:4173') outsideRequests.push(request.url());
+  });
+  try {
+    await page.goto('/demo');
+    const download = page.waitForEvent('download');
+    await page.getByRole('button', { name: 'Export recovery file list' }).click();
+    const manifest = await download;
+    await page.getByRole('button', { name: 'Start for real' }).click();
+    await page.locator('#import-recovery-file').click();
+    await page.locator('#recovery-file-input').setInputFiles((await manifest.path())!);
+    await page.locator('#restored-input').setInputFiles(restored);
+    await page.getByRole('button', { name: 'Check restored folder' }).click();
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('archive items need attention');
+    expect(outsideRequests).toEqual([]);
+  } finally {
+    await rm(fixture, { recursive: true, force: true });
+  }
 });
 
 test('@claim:free-exports keeps both recovery exports available without a license', async ({ page }) => {
@@ -341,8 +443,8 @@ test('@claim:free-exports keeps both recovery exports available without a licens
 test('@claim:accessibility-not-gated keeps keyboard and screen-reader support available without a license', async ({ page }) => {
   await page.goto('/check');
   expect(await page.evaluate(() => localStorage.getItem('sb_license:family-archive-check'))).toBeNull();
-  await page.getByRole('button', { name: 'Choose and read main folder' }).focus();
-  await expect(page.getByRole('button', { name: 'Choose and read main folder' })).toBeFocused();
+  await page.getByRole('button', { name: 'Choose and read main archive' }).focus();
+  await expect(page.getByRole('button', { name: 'Choose and read main archive' })).toBeFocused();
   const results = await new AxeBuilder({ page }).analyze();
   expect(results.violations.filter((violation) => ['serious', 'critical'].includes(violation.impact ?? ''))).toEqual([]);
 });
@@ -365,7 +467,7 @@ test('keyboard navigation skips hidden file inputs and shows focus', async ({ pa
   }
   expect(focusedIds).not.toContain('primary-input');
   expect(focusedIds).not.toContain('backup-input');
-  const picker = page.getByRole('button', { name: 'Choose and read main folder' });
+  const picker = page.getByRole('button', { name: 'Choose and read main archive' });
   await picker.focus();
   expect(await picker.evaluate((element) => getComputedStyle(element).outlineStyle)).not.toBe('none');
 });

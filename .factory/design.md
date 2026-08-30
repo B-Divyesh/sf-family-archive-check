@@ -32,7 +32,7 @@ Spacing follows an 8 px base: 8, 16, 24, 32, 48, 64, and 96 px. Content measures
 
 ## Interaction grammar
 
-The archive check reads from left to right as a route: choose the main folder, choose an independent copy, check, then export. A moving gold marker crosses that route during a scan. State labels always pair color with words and symbols. File paths stay visible and can wrap.
+The archive check reads from left to right as a route: choose the main archive, choose an independent copy, check, then export. A moving gold marker crosses that route during a scan. State labels always pair color with words and symbols. File paths stay visible and can wrap.
 
 ## Motion policy
 

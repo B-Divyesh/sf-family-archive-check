@@ -89,12 +89,48 @@ esac
     expect(JSON.parse(policy).globalHeaders['Permissions-Policy']).toContain('camera=()');
   });
 
+  it('uses main archive, independent copy, and recovery file list consistently', () => {
+    const readerCopy = readFileSync('README.md', 'utf8');
+    const interfaceCopy = readFileSync('src/main.ts', 'utf8');
+    const copy = `${readerCopy}\n${interfaceCopy}`;
+    expect(copy).toContain('main archive');
+    expect(copy).toContain('independent copy');
+    expect(copy).toContain('recovery file list');
+    expect(copy).not.toMatch(/main folder/i);
+    expect(copy).not.toMatch(/Export file list/);
+    expect(copy).not.toMatch(/with a copy on another drive/i);
+  });
+
   it('serves app routes explicitly, unknown routes as 404, and immutable assets', () => {
     const config = JSON.parse(readFileSync('public/staticwebapp.config.json', 'utf8'));
     expect(config.navigationFallback).toBeUndefined();
     expect(config.routes).toContainEqual({ route: '/demo', rewrite: '/index.html' });
+    expect(config.routes).toContainEqual({ route: '/print/sample-family-archive', rewrite: '/index.html' });
+    expect(config.routes).not.toContainEqual({ route: '/print/*', rewrite: '/index.html' });
     expect(config.routes).toContainEqual({ route: '/assets/*', headers: { 'Cache-Control': 'public, max-age=31536000, immutable' } });
     expect(config.responseOverrides['404']).toEqual({ rewrite: '/404.html' });
+  });
+
+  it('@claim:release-tag-trigger runs the release workflow for v* tags', () => {
+    const workflow = readFileSync('.github/workflows/release.yml', 'utf8');
+    expect(workflow).toMatch(/tags:\s*\["v\*"\]/);
+  });
+
+  it('@claim:release-platform-builds includes every promised desktop target', () => {
+    const workflow = readFileSync('.github/workflows/release.yml', 'utf8');
+    expect(workflow).toContain('platform: macos-latest');
+    expect(workflow).toContain('aarch64-apple-darwin');
+    expect(workflow).toContain('x86_64-apple-darwin');
+    expect(workflow).toContain('platform: windows-latest');
+    expect(workflow).toContain('platform: ubuntu-22.04');
+    expect(workflow).toContain('tauri-apps/tauri-action@v0');
+  });
+
+  it('@claim:release-attachments publishes installers and the release manifests', () => {
+    const workflow = readFileSync('.github/workflows/release.yml', 'utf8');
+    expect(workflow).toContain('tauri-apps/tauri-action@v0');
+    expect(workflow).toContain('softprops/action-gh-release@v2');
+    expect(workflow).toMatch(/files:\s*\|\s*SHA256SUMS\s*latest\.json/s);
   });
 
   it('keeps license verification outside the offline cache and permits the desktop proxy connection', () => {
