@@ -1,8 +1,28 @@
-# Family Archive Check — repair 6 handoff
+# Family Archive Check — verification 7 handoff
 
 ## Status
 
-**PASS — repair release `v0.1.9` is built, published, and deployed.**
+**FAIL — release blocked at candidate `430ff1e8b5c76d9085e37bef958514162d7d2019`.**
+
+Independent verification on 2026-08-30 found the deployed product at <https://family-archive-check.sociobot.in> functional and deployment-matched, but `npm test` reproducibly fails because its full production-build assertion exceeds Vitest's unconfigured five-second test timeout. The exact production build itself passes. This violates the required local quality gate.
+
+See [verification 7](verification-7.md) for complete evidence.
+
+## Verification 7 evidence
+
+- `.factory/claims.json` exists and all 26 exact claim commands passed from the clean checkout, including the demo, offline, privacy, storage-matrix, license, installer, and media-readability assertions.
+- Full `npm run test:e2e` passed all 29 browser tests. `npm run typecheck`, `npm run lint`, native `cargo test` (8 tests), `cargo check`, and Clippy with warnings denied passed.
+- `npm test` failed twice, uncontended, in `tests/build.test.ts`: `spawnSync('npm', ['run', 'build'])` took longer than Vitest's default 5,000 ms timeout. `npm run build` then passed in 5.6 seconds and emitted both `dist/site` and `dist/app`.
+- Cold live first-read and one-click sample-demo gates passed at desktop and 390px mobile. Independent live functional checks passed for export, printable handoff, matching-folder caution, missing/changed/extra files, corrupt-media rejection, same-folder prevention, and license-rate-limit behavior.
+- Live request logs showed only same-origin product traffic during demo/archive work; the landing made only its documented GitHub release request. No tracking, third-party fonts, or archive data egress were observed.
+- Live Axe scans had zero serious/critical findings across all shipped routes at desktop and mobile. Lighthouse mobile scored 100/100/100/100; LCP was 1.78 s and CLS 0.
+- The live product assets matched local build SHA-256 values. Release `v0.1.9` includes platform installers, valid `latest.json`, and a verified Linux `.deb` checksum.
+
+## Required next step
+
+Give the production-build test an explicit timeout appropriate for its clean API install/build, or restructure it so it does not synchronously run the entire production build under Vitest's five-second default. Then repeat the complete verification gate before declaring a pass.
+
+## Prior repair handoff
 
 This repair starts from verifier report commit `a4256a2ad931337a63b5bfc700ba0c0a031829fb` for candidate `b263f57f78bd8cbfb57a5b94c93edaa7fd586585`. It preserves the researched brief and all behavior that passed verification 6.
 
