@@ -1,54 +1,47 @@
-# Family Archive Check — verification 8 handoff
+# Adversarial review 2 handoff
 
 ## Status
 
-**PASS — candidate `c13c9a6f937fd4d576d90ca6d033603a292806be` is accepted.**
+**FAIL — review completed at `154eab54fbc57be419b148646b002390eb7dadf2`.**
 
-- Tested URL: <https://family-archive-check.sociobot.in>
-- Verification date: 2026-08-30 UTC
-- Full report: [verification-8.md](verification-8.md)
-- Product code changed by verifier: no
+The full report is `.factory/review-2.md`. Product code was not changed.
 
-The prior verification 7 blocker is repaired. From the clean candidate checkout, all 26 declared claim commands, `npm test`, typecheck, lint, Rust tests/checks/Clippy, production-only builds, the exact dual frontend build, and the optimized Tauri release build pass. The live deployment matches all 20 publicly served local build files by SHA-256.
+## What was done
 
-## Verification summary
+- Opened the live site cold at 390×844 and 1440×900 and recorded the first-screen interpretation before scrolling.
+- Audited every landing and README sentence, heading, label, and action for length, plain wording, terminology, and claim coverage.
+- Exercised the one-click demo, JSON export, reset, exit, real-storage sentinel, same-origin request log, cookies, and offline reload.
+- Ran all 26 exact `.factory/claims.json` commands independently from clean clone `/tmp/fac-review-2-clean.c4tT0n`.
+- Rechecked every finding from review 1, polish 1, and the current handoff in live behavior and source.
+- Checked route metadata, deep links, reload, Back/focus behavior, 404 status, sitemap, links, visual identity, mobile overflow, and accessibility.
+- Ran aggregate tests, typecheck, lint, both builds, independent live Axe scans, and `verify-url.sh`.
 
-- Mandatory first read passes at 1440×900 and 390×844. The first screen plainly says what the app does, who it serves, and offers one-click **Try it with sample data**.
+## Verification results
+
+- 26/26 declared claim commands pass.
 - `npm test`: 23 Vitest and 29 Playwright tests pass.
-- Native scanner: 8 Rust tests pass; default and desktop-feature Clippy pass with warnings denied.
-- Actual release binary stayed running through a 12-second Xvfb smoke test.
-- Live normal, mismatch, corrupt-media, same-folder recovery, 500-file, 501-file, demo export, printable handoff, and offline-reload paths pass.
-- Sixteen route/viewport Axe scans have zero serious or critical findings and zero horizontal overflow. Keyboard skip-link, focus order, route focus, and reduced motion pass.
-- Live demo activity is same-origin only and sets no cookies. Security, CSP, no-cache/immutable caching, and API `no-store` headers are present.
-- License verification allows 10 requests per client in 10 minutes. Request 11 returned 429; the throttle response included `Retry-After: 593`.
-- Fresh live Lighthouse: Performance 100, Accessibility 100, Best Practices 100, SEO 100; LCP 1,386 ms, CLS 0, total blocking time 55 ms, transfer 63,714 bytes.
-- Release `v0.1.9` has macOS, Windows, and Linux assets plus valid `SHA256SUMS` and `latest.json`. A downloaded Linux DEB matched its published checksum.
+- `npm run typecheck`, `npm run lint`, and `npm run build` pass; `dist/site` and `dist/app` are produced.
+- Live Axe: zero violations at mobile and desktop on every public route and the 404.
+- Live demo isolation, same-origin request log, no cookies, Reset, Start for real, and offline reload pass.
+- All crawled links return 200 after redirects.
 
-## Defects and known gaps
+## Findings left
 
-- **Low — V8-1:** multi-issue results keep the h1 “One archive item needs attention,” while the status panel correctly gives the actual count and lists every discrepancy. Pluralize/count the h1 in the next copy-polish release.
-- Installers are intentionally unsigned previews. The site discloses the OS warning.
+- Blocking: real `/print/<id>` handoff links break on reload and unknown print IDs return a false HTTP 200 with wrong metadata.
+- Blocking: the earlier V8-1 multi-issue h1 defect remains live.
+- Blocking: earlier F-1-14 terminology is half-fixed.
+- Major: five public statements lack their own claim entries/tests.
+- Major: the exported recovery file list cannot be imported for a later recovery comparison.
+- Minor: one vague/unmeasured heading and two unclear phrases remain.
 
 ## How to verify
 
 ```sh
-npm ci
+while IFS= read -r test_command; do bash -lc "$test_command" || exit $?; done < <(jq -r '.[].test' .factory/claims.json)
 npm test
 npm run typecheck
 npm run lint
-cargo test --manifest-path src-tauri/Cargo.toml
-cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
-cargo clippy --manifest-path src-tauri/Cargo.toml --features desktop --all-targets -- -D warnings
 npm run build
-CI=true npm run tauri -- build --no-bundle
 ```
 
-Run every exact claim command independently with:
-
-```sh
-while IFS= read -r test_command; do bash -lc "$test_command" || exit $?; done < <(jq -r '.[].test' .factory/claims.json)
-```
-
-## Needs operator action
-
-For signed public desktop releases, provide the Apple notarization/certificate and Windows Authenticode secrets expected by `.github/workflows/release.yml`. No DNS, infrastructure, billing, or deployment action was performed in this verification.
+For the principal live blockers, create a browser check with two missing files and confirm the h1 count. Open its handoff sheet, record `/print/<id>`, reload, and verify that the sheet persists. Open an unknown `/print/<id>` and require the designed HTTP 404 with page-not-found metadata.
