@@ -4,7 +4,7 @@ Released candidate reviewed: `627d41b1b5043c68f88702c297bcb12555760470`
 Review sources: `.factory/review-1.md` and `.factory/review-2.md`  
 Repair scope: all historical findings, including `V8-1`, plus the controller's deterministic-preview-server finding.
 
-The product fixes from the first two rounds are retained and rechecked below. This round makes the full browser suite deterministic: every test and Playwright web server starts by stopping only an orphaned FAC Vite/test server on port 4173, then Playwright builds and owns a fresh server (`reuseExistingServer: false`). The two offline/reload tests now create and close only their own browser context.
+The product fixes from the first two rounds are retained and rechecked below. This round makes the full browser suite deterministic: every npm test command and Playwright web server starts by stopping only an orphaned FAC Vite/test server on port 4173, then Playwright builds and owns a fresh server (`reuseExistingServer: false`). The two offline/reload tests now create and close only their own browser context.
 
 ## Review 1 findings
 
