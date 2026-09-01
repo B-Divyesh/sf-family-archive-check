@@ -1,3 +1,20 @@
+# Family Archive Check — review 5 handoff
+
+## Status: PASS
+
+Independent adversarial review 5 completed on 2026-09-01 at commit `e32c0ff25d9a02179fad10cd941c14ce7f87a1db`. The review found zero findings.
+
+- Reviewed live: `https://family-archive-check.sociobot.in` at 390 px and desktop, plus `/demo`, `/check`, `/privacy`, `/terms`, `/print/sample-family-archive`, and a real 404.
+- Confirmed the cold first screen states the job, audience, and first action; the demo opens a populated result in one click; its banner, Reset demo, Start for real, and real-storage isolation work.
+- Ran all 33 exact `.factory/claims.json` commands independently from clean clone `/tmp/family-archive-check-review5-clean.K7oTOd`; all passed.
+- Confirmed `npm test` (28 Vitest, 34 Playwright), typecheck, lint, and build. `dist/site` and `dist/app` were produced.
+- Confirmed zero live Axe violations across public routes and 404, route-specific metadata, internal links, product-only demo requests, no standard-route console errors, and the product-specific visual system.
+- Recorded full evidence, copy audit, claim results, and historical-finding confirmations in `.factory/review-5.md`.
+
+Known gaps: none identified by this review. No product code was modified.
+
+---
+
 # Family Archive Check — verification 11 handoff
 
 ## Independent verification status: PASS
