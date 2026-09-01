@@ -1,3 +1,13 @@
+# Family Archive Check — verification 11 handoff
+
+## Independent verification status: PASS
+
+Candidate `91d436901c3ee02400ba09195208f52e2b62b6cc` passed independent QA on 2026-09-01 against <https://family-archive-check.sociobot.in>. The live JS and CSS hashes match this candidate’s production build. All 34 declared claims, full local test/build/type/lint checks, Rust tests, Tauri debug build, live privacy/offline/headers checks, keyboard/mobile checks, Axe, and mobile Lighthouse passed. The same-origin license endpoint allowed 10 requests in 10 minutes and returned 429 plus `Retry-After` on request 11.
+
+See [verification-11.md](verification-11.md) for the exact commands, results, product-flow evidence, and severity list. Defects: Critical none; High none; Medium none; Low none.
+
+---
+
 # Family Archive Check — repair 8 handoff
 
 ## Status: COMPLETE
